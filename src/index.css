@@ -1,0 +1,82 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-default: 'Montserrat';
+
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 142.1 76.2% 36.3%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 142.1 76.2% 36.3%;
+  --accent-foreground: 0 0% 100%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 142.1 76.2% 36.3%;
+  --sidebar-background: 240 10% 3.9%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-primary: 142.1 76.2% 36.3%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 142.1 76.2% 36.3%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 142.1 76.2% 36.3%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    font-family: var(--font-default);
+    @apply bg-background text-foreground;
+  }
+}
+
+.kanban-board {
+  @apply grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4;
+}
+
+.kanban-column {
+  @apply bg-secondary rounded-lg p-4 min-w-[300px];
+}
+
+.kanban-card {
+  @apply bg-card p-3 rounded-md shadow-sm mb-2 cursor-pointer hover:shadow-md transition-shadow;
+}
+
+.editor-container .ProseMirror {
+  @apply min-h-[300px] p-4 rounded-md bg-secondary focus:outline-none focus:ring-1 focus:ring-primary;
+}
+
+.editor-container .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  @apply text-muted-foreground float-left h-0;
+}
+
+.project-card {
+  @apply bg-secondary p-4 rounded-lg cursor-pointer hover:bg-muted transition-colors;
+}
+
+.graph-node {
+  @apply fill-primary stroke-primary-foreground stroke-2;
+}
+
+.graph-link {
+  @apply stroke-muted-foreground stroke-1 opacity-30;
+}
