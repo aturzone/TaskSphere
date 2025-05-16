@@ -225,12 +225,13 @@ const CalendarPage: React.FC = () => {
   const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const monthsOfYear = Array.from({ length: 12 }, (_, i) => format(new Date(currentDateFocus.getFullYear(), i, 1), 'MMMM'));
 
+  // Modify the GitHub-style task density color function
   const getTaskDensityColor = (count: number): string => {
     if (count === 0) return 'bg-muted/20 hover:bg-muted/40';
-    if (count <= 1) return 'bg-green-200 hover:bg-green-300 dark:bg-green-800 dark:hover:bg-green-700';
-    if (count <= 3) return 'bg-green-400 hover:bg-green-500 dark:bg-green-600 dark:hover:bg-green-500';
-    if (count <= 5) return 'bg-green-600 hover:bg-green-700 dark:bg-green-400 dark:hover:bg-green-300';
-    return 'bg-green-800 hover:bg-green-900 dark:bg-green-200 dark:hover:bg-green-100';
+    if (count === 1) return 'bg-[#0e4429] hover:bg-[#196c39] dark:bg-[#006d32] dark:hover:bg-[#26a641]';
+    if (count <= 3) return 'bg-[#006d32] hover:bg-[#26a641] dark:bg-[#26a641] dark:hover:bg-[#39d353]';
+    if (count <= 5) return 'bg-[#26a641] hover:bg-[#39d353] dark:bg-[#39d353] dark:hover:bg-[#4ffc6a]';
+    return 'bg-[#39d353] hover:bg-[#4ffc6a] dark:bg-[#4ffc6a] dark:hover:bg-[#73fe87]';
   };
 
   const renderYearView = () => (
@@ -250,9 +251,15 @@ const CalendarPage: React.FC = () => {
             return (
               <div key={monthName} className="p-2 rounded-md border">
                 <h4 className="text-sm font-semibold text-center mb-2">{monthName}</h4>
-                <div className="grid grid-cols-7 gap-px text-xs">
-                  {weekDays.map(wd => <div key={`${monthName}-${wd}`} className="text-center text-muted-foreground text-[10px] pb-1">{wd.substring(0,1)}</div>)}
-                  {Array(gridOffset).fill(null).map((_, i) => <div key={`offset-${monthIndex}-${i}`} className="h-4 w-4"></div>)}
+                <div className="grid grid-cols-7 gap-px text-center">
+                  {weekDays.map(wd => (
+                    <div key={`${monthName}-${wd}`} className="text-muted-foreground text-[10px] pb-1">
+                      {wd.substring(0,1)}
+                    </div>
+                  ))}
+                  {Array(gridOffset).fill(null).map((_, i) => (
+                    <div key={`offset-${monthIndex}-${i}`} className="h-4"></div>
+                  ))}
                   {daysInThisMonth.map(day => {
                     const dayKey = format(day, 'yyyy-MM-dd');
                     const taskCount = tasksByDayForYearView[dayKey] || 0;
@@ -260,7 +267,7 @@ const CalendarPage: React.FC = () => {
                       <div
                         key={dayKey}
                         title={`${format(day, 'MMM d')}: ${taskCount} task(s)`}
-                        className={`h-4 w-4 rounded-sm cursor-pointer transition-all ${getTaskDensityColor(taskCount)}`}
+                        className={`h-4 w-4 mx-auto rounded-sm cursor-pointer transition-all ${getTaskDensityColor(taskCount)}`}
                         onClick={() => handleDayGridClick(day)}
                       />
                     );

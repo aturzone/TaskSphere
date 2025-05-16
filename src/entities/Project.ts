@@ -1,5 +1,6 @@
 
 import { generateId } from '../utils';
+import { ProjectStep, ProjectStepProps } from './ProjectStep';
 
 export interface ProjectProps {
   id?: string;
@@ -11,6 +12,7 @@ export interface ProjectProps {
   endDate?: string;
   reminderDate?: string;
   reminderTime?: string;
+  steps?: Partial<ProjectStepProps>[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -25,6 +27,7 @@ export class Project {
   endDate?: string;
   reminderDate?: string;
   reminderTime?: string;
+  steps: Partial<ProjectStepProps>[];
   createdAt: string;
   updatedAt: string;
 
@@ -38,6 +41,7 @@ export class Project {
     this.endDate = props.endDate;
     this.reminderDate = props.reminderDate;
     this.reminderTime = props.reminderTime;
+    this.steps = props.steps || [];
     this.createdAt = props.createdAt || new Date().toISOString();
     this.updatedAt = props.updatedAt || new Date().toISOString();
   }
@@ -52,6 +56,18 @@ export class Project {
       '#EF4444', // Red
     ];
     return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  // Calculate progress based on project steps
+  calculateProgress(): number {
+    if (!this.steps || this.steps.length === 0) return 0;
+    
+    const totalWeight = this.steps.reduce((sum, step) => sum + (step.weightPercentage || 0), 0);
+    const completedWeight = this.steps
+      .filter(step => step.status === 'Done')
+      .reduce((sum, step) => sum + (step.weightPercentage || 0), 0);
+    
+    return totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0;
   }
 
   // Mock local storage implementation for demo
@@ -145,5 +161,15 @@ export class Project {
 
   static async get(id: string): Promise<Project | null> {
     return this.findById(id);
+  }
+
+  // When a project step is created, updated or deleted, sync with project
+  static async syncProjectSteps(projectId: string): Promise<void> {
+    try {
+      const steps = await ProjectStep.getByProjectId(projectId);
+      await this.update(projectId, { steps: steps });
+    } catch (error) {
+      console.error("Failed to sync project steps:", error);
+    }
   }
 }

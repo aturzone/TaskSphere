@@ -4,7 +4,7 @@ import { Project } from '@/entities/Project';
 import TaskItem from '@/components/TaskItem';
 import TaskFormDialog from '@/components/TaskFormDialog';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ListChecks, Loader2, Filter, ArrowDownUp, Search } from 'lucide-react';
+import { PlusCircle, ListChecks, Loader2, Filter, ArrowDownUp, Search, FolderOpen } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import useAppLevelAuth from '@/hooks/useAppLevelAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -22,6 +22,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const TasksPage: React.FC = () => {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -31,6 +36,7 @@ const TasksPage: React.FC = () => {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('createdAt:desc');
@@ -45,8 +51,20 @@ const TasksPage: React.FC = () => {
   useEffect(() => {
     if (currentUser) {
       fetchTasksAndProject();
+      fetchProjects();
     }
   }, [currentUser, projectId]);
+
+  const fetchProjects = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const fetchedProjects = await Project.list("title:asc");
+      setProjects(fetchedProjects);
+    } catch (error) {
+      console.error("Failed to fetch projects:", error);
+    }
+  };
 
   const fetchTasksAndProject = async () => {
     if (!currentUser) return;
@@ -55,11 +73,13 @@ const TasksPage: React.FC = () => {
     try {
       let taskList;
       if (projectId) {
-        taskList = await Task.filter({ projectId, userId: currentUser.id }, sortBy as any);
+        // Fix the task filter to use projectId only, not userId
+        taskList = await Task.filter({ projectId }, sortBy as any);
         const projectData = await Project.get(projectId);
         setCurrentProject(projectData);
       } else {
-        taskList = await Task.filter({ userId: currentUser.id }, sortBy as any);
+        // When showing all tasks, we don't filter by userId
+        taskList = await Task.list(sortBy as any);
         setCurrentProject(null);
       }
       setTasks(taskList);
@@ -114,6 +134,14 @@ const TasksPage: React.FC = () => {
   const openNewTaskForm = () => {
     setEditingTask(null);
     setShowTaskForm(true);
+  };
+  
+  const handleProjectChange = (selectedProjectId: string) => {
+    if (selectedProjectId === 'all') {
+      navigate('/tasks');
+    } else {
+      navigate(`/tasks?projectId=${selectedProjectId}`);
+    }
   };
 
   const filteredTasks = useMemo(() => {
@@ -207,9 +235,44 @@ const TasksPage: React.FC = () => {
             </h1>
           )}
         </div>
-        <Button onClick={openNewTaskForm}>
-          <PlusCircle className="mr-2 h-5 w-5" /> Add Task
-        </Button>
+        <div className="flex gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                <FolderOpen className="h-4 w-4 mr-2" />
+                Select Project
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-0" align="end">
+              <div className="max-h-80 overflow-auto p-1">
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start font-normal mb-1"
+                  onClick={() => handleProjectChange('all')}
+                >
+                  All Projects
+                </Button>
+                {projects.map(project => (
+                  <Button
+                    key={project.id}
+                    variant="ghost"
+                    className="w-full justify-start font-normal mb-1"
+                    onClick={() => handleProjectChange(project.id)}
+                  >
+                    <div 
+                      className="h-3 w-3 rounded-full mr-2" 
+                      style={{ backgroundColor: project.color || '#3B82F6' }}
+                    ></div>
+                    {project.title}
+                  </Button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Button onClick={openNewTaskForm}>
+            <PlusCircle className="mr-2 h-5 w-5" /> Add Task
+          </Button>
+        </div>
       </div>
 
       <div className="mb-6 p-4 bg-card rounded-lg shadow">

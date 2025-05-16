@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Project } from '@/entities/Project';
 import { Task } from '@/entities/Task';
 import { Note } from '@/entities/Note';
+import { ProjectStep } from '@/entities/ProjectStep';
 import ProjectCard from '@/components/ProjectCard';
-import ProjectFormDialog from '@/components/ProjectFormDialog';
+import ProjectFormDialogEnhanced from '@/components/ProjectFormDialogEnhanced';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, FolderKanban, Loader2 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
@@ -20,16 +22,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { createTestData } from '@/utils/testData';
 
 const ProjectsPage: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
-  const [projectStats, setProjectStats] = useState<{[key: string]: {tasks: number, notes: number, completed: number}}>(
+  const [projectStats, setProjectStats] = useState<{[key: string]: {tasks: number, notes: number, completed: number, steps: number, progress: number}}>(
     {}
   );
   const [isLoading, setIsLoading] = useState(true);
   const [editingProject, setEditingProject] = useState<any | null>(null);
+  const [showProjectForm, setShowProjectForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [hasInitializedTestData, setHasInitializedTestData] = useState(false);
 
   const { toast } = useToast();
   const { isFirstLoad, currentUser } = useAppLevelAuth();
@@ -37,6 +42,18 @@ const ProjectsPage: React.FC = () => {
 
   useEffect(() => {
     if (currentUser) {
+      // Initialize test data if it's the first time
+      const hasTestData = localStorage.getItem('test-data-initialized');
+      if (!hasTestData && !hasInitializedTestData) {
+        createTestData();
+        localStorage.setItem('test-data-initialized', 'true');
+        setHasInitializedTestData(true);
+        toast({
+          title: "Test Data Created",
+          description: "Sample projects and tasks have been created for demonstration."
+        });
+      }
+      
       fetchProjects();
     }
   }, [currentUser]);
@@ -50,17 +67,32 @@ const ProjectsPage: React.FC = () => {
       setProjects(fetchedProjects);
       
       // Get stats for each project
-      const stats: {[key: string]: {tasks: number, notes: number, completed: number}} = {};
+      const stats: {[key: string]: {tasks: number, notes: number, completed: number, steps: number, progress: number}} = {};
       
       for (const project of fetchedProjects) {
         const tasks = await Task.filter({ projectId: project.id });
         const notes = await Note.filter({ projectId: project.id });
+        const steps = await ProjectStep.getByProjectId(project.id);
         const completedTasks = tasks.filter(task => task.status === 'Done').length;
+        
+        // Calculate progress based on steps if they exist, otherwise based on tasks
+        let progress = 0;
+        if (steps.length > 0) {
+          const totalWeight = steps.reduce((sum, step) => sum + step.weightPercentage, 0);
+          const completedWeight = steps
+            .filter(step => step.status === 'Done')
+            .reduce((sum, step) => sum + step.weightPercentage, 0);
+          progress = totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0;
+        } else if (tasks.length > 0) {
+          progress = Math.round((completedTasks / tasks.length) * 100);
+        }
         
         stats[project.id] = {
           tasks: tasks.length,
           notes: notes.length,
-          completed: completedTasks
+          completed: completedTasks,
+          steps: steps.length,
+          progress: progress
         };
       }
       
@@ -75,6 +107,7 @@ const ProjectsPage: React.FC = () => {
 
   const handleEditProject = (project: any) => {
     setEditingProject(project);
+    setShowProjectForm(true);
   };
   
   const handleDeleteProjectAttempt = (projectId: string) => {
@@ -85,6 +118,10 @@ const ProjectsPage: React.FC = () => {
   const handleDeleteConfirm = async () => {
     if (!projectToDelete) return;
     try {
+      // Delete associated project steps first
+      await ProjectStep.deleteByProjectId(projectToDelete);
+      
+      // Then delete the project
       await Project.delete(projectToDelete);
       toast({ title: "Project Deleted", description: "The project has been successfully deleted." });
       fetchProjects(); // Refresh list
@@ -114,7 +151,9 @@ const ProjectsPage: React.FC = () => {
     ...project,
     taskCount: projectStats[project.id]?.tasks || 0,
     noteCount: projectStats[project.id]?.notes || 0,
-    completedTaskCount: projectStats[project.id]?.completed || 0
+    completedTaskCount: projectStats[project.id]?.completed || 0,
+    stepCount: projectStats[project.id]?.steps || 0,
+    progress: projectStats[project.id]?.progress || 0
   }));
 
   return (
@@ -124,18 +163,30 @@ const ProjectsPage: React.FC = () => {
           <FolderKanban className="mr-3 h-8 w-8 text-primary" />
           Projects
         </h1>
-        <ProjectFormDialog
-          project={editingProject}
-          onSave={() => {
-            fetchProjects();
-            setEditingProject(null); // Reset editing project
-          }}
-          triggerButton={
-            <Button>
-              <PlusCircle className="mr-2 h-5 w-5" /> Add Project
-            </Button>
-          }
-        />
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/graph-view')}
+          >
+            View Knowledge Galaxy
+          </Button>
+          <ProjectFormDialogEnhanced
+            project={editingProject}
+            isOpen={showProjectForm}
+            onOpenChange={setShowProjectForm}
+            onSave={() => {
+              fetchProjects();
+              setEditingProject(null);
+              setShowProjectForm(false);
+            }}
+          />
+          <Button onClick={() => {
+            setEditingProject(null);
+            setShowProjectForm(true);
+          }}>
+            <PlusCircle className="mr-2 h-5 w-5" /> Add Project
+          </Button>
+        </div>
       </div>
 
       {enhancedProjects.length === 0 && !isLoading ? (
@@ -143,7 +194,6 @@ const ProjectsPage: React.FC = () => {
           <FolderKanban size={48} className="mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-semibold text-muted-foreground">No Projects Yet</h2>
           <p className="text-muted-foreground mb-4">Get started by creating your first project.</p>
-          {/* The ProjectFormDialog above serves as the primary way to add a project */}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -165,7 +215,7 @@ const ProjectsPage: React.FC = () => {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the project
-              and all associated tasks and notes (if cascading delete is implemented).
+              and all associated tasks, notes, and steps.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

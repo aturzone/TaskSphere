@@ -1,153 +1,136 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileEdit, Trash2, Calendar, ArrowRight, Bell } from 'lucide-react';
-import { format, isValid, parseISO } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { Edit, Trash2, FolderKanban, Calendar, Clock } from 'lucide-react';
+import { formatDate } from '@/utils';
+import { Progress } from '@/components/ui/progress';
+import { ProjectStepsDialog } from './ProjectStepsDialog';
 
 interface ProjectCardProps {
-  project: {
-    id: string;
-    title: string;
-    description: string;
-    color?: string;
-    taskCount?: number;
-    noteCount?: number;
-    completedTaskCount?: number;
-    startDate?: string;
-    endDate?: string;
-    reminderDate?: string;
-    reminderTime?: string;
-  };
+  project: any;
   onEdit: (project: any) => void;
   onDelete: (id: string) => void;
   onSelect: (id: string) => void;
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onDelete, onSelect }) => {
-  const {
-    id,
-    title,
-    description,
-    color = '#3B82F6',
-    taskCount = 0,
-    noteCount = 0,
-    completedTaskCount = 0,
-    startDate,
-    endDate,
-    reminderDate,
-    reminderTime,
-  } = project;
-
-  const hasReminder = reminderDate && isValid(parseISO(reminderDate));
-  const hasDateRange = startDate && endDate && isValid(parseISO(startDate)) && isValid(parseISO(endDate));
-  const progressPercentage = taskCount > 0 ? Math.round((completedTaskCount / taskCount) * 100) : 0;
-  
   return (
-    <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3 pt-4 px-4">
-        <div className="flex items-center gap-2">
-          <div
-            className="h-5 w-5 rounded-full flex-shrink-0"
-            style={{ backgroundColor: color }}
-          />
-          <CardTitle className="font-semibold text-lg line-clamp-1">{title}</CardTitle>
+    <Card className="overflow-hidden border border-border h-full flex flex-col hover:shadow-md transition-shadow">
+      <CardHeader className="pb-2 relative pt-3" style={{ backgroundColor: `${project.color}20` }}>
+        <div 
+          className="absolute top-0 left-0 h-1 w-full" 
+          style={{ backgroundColor: project.color }}
+        ></div>
+        
+        <div className="flex items-center gap-2 mb-1">
+          <div 
+            className="w-4 h-4 rounded-sm" 
+            style={{ backgroundColor: project.color }}
+          ></div>
+          <h3 
+            className="font-semibold text-lg truncate flex-grow cursor-pointer"
+            onClick={() => onSelect(project.id)}
+          >
+            {project.title}
+          </h3>
+        </div>
+        
+        <div className="text-sm text-muted-foreground line-clamp-2 min-h-[40px]">
+          {project.description || 'No description'}
         </div>
       </CardHeader>
       
-      <CardContent className="px-4 py-2 flex-grow">
-        <p className="text-sm text-muted-foreground line-clamp-3 mb-3">{description || 'No description'}</p>
+      <CardContent className="py-3 flex-grow">
+        <div className="flex justify-between text-sm mb-2">
+          <span className="text-muted-foreground">Progress:</span>
+          <span className="font-medium">{project.progress}%</span>
+        </div>
+        <Progress value={project.progress} className="h-2" />
         
-        {hasDateRange && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-            <Calendar className="h-3.5 w-3.5" />
-            <span>
-              {format(parseISO(startDate), 'MMM d, yyyy')} - {format(parseISO(endDate), 'MMM d, yyyy')}
-            </span>
-          </div>
-        )}
-        
-        {hasReminder && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-            <Bell className="h-3.5 w-3.5" />
-            <span>
-              Reminder: {format(parseISO(reminderDate), 'MMM d, yyyy')}
-              {reminderTime && ` at ${reminderTime}`}
-            </span>
-          </div>
-        )}
-        
-        <div className="flex justify-between items-center mt-4">
-          <div className="grid grid-cols-2 gap-2 w-full">
-            <Badge variant="outline" className="flex justify-center py-0.5">
-              Tasks: {taskCount}
-            </Badge>
-            <Badge variant="outline" className="flex justify-center py-0.5">
-              Notes: {noteCount}
-            </Badge>
-          </div>
+        <div className="mt-4 space-y-2">
+          {project.startDate && (
+            <div className="flex items-center text-sm gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">Start:</span> 
+              <span>{formatDate(project.startDate)}</span>
+            </div>
+          )}
+          
+          {project.endDate && (
+            <div className="flex items-center text-sm gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">End:</span> 
+              <span>{formatDate(project.endDate)}</span>
+            </div>
+          )}
+          
+          {project.reminderDate && (
+            <div className="flex items-center text-sm gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">Reminder:</span> 
+              <span>{formatDate(project.reminderDate)} {project.reminderTime || ''}</span>
+            </div>
+          )}
         </div>
         
-        {taskCount > 0 && (
-          <div className="mt-3">
-            <div className="text-xs text-muted-foreground mb-1 flex justify-between">
-              <span>Progress</span>
-              <span>{progressPercentage}%</span>
-            </div>
-            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-              <div
-                className={cn(
-                  "h-full", 
-                  progressPercentage === 100 
-                    ? "bg-green-500" 
-                    : progressPercentage > 50 
-                      ? "bg-amber-500" 
-                      : "bg-blue-600"
-                )}
-                style={{ width: `${progressPercentage}%` }}
-              />
-            </div>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+            <span>Tasks: {project.taskCount || 0}</span>
           </div>
-        )}
+          <div className="flex items-center gap-1">
+            <div className="h-2 w-2 rounded-full bg-pink-500"></div>
+            <span>Notes: {project.noteCount || 0}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="h-2 w-2 rounded-full bg-green-500"></div>
+            <span>Completed: {project.completedTaskCount || 0}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="h-2 w-2 rounded-full bg-purple-500"></div>
+            <span>Steps: {project.stepCount || 0}</span>
+          </div>
+        </div>
       </CardContent>
       
-      <CardFooter className="px-4 py-3 border-t flex justify-between">
-        <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(project);
-            }}
+      <CardFooter className="pt-2 pb-3 border-t flex justify-between items-center">
+        <div className="flex space-x-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => onSelect(project.id)}
+            className="h-8 w-8 rounded-full"
+            title="View Tasks"
           >
-            <FileEdit className="h-4 w-4" />
+            <FolderKanban className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-destructive"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(id);
-            }}
+          
+          <ProjectStepsDialog 
+            projectId={project.id} 
+            projectTitle={project.title} 
+          />
+          
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => onEdit(project)}
+            className="h-8 w-8 rounded-full"
+            title="Edit Project"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => onDelete(project.id)}
+            className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+            title="Delete Project"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs h-8 flex items-center gap-1"
-          onClick={() => onSelect(id)}
-        >
-          View Tasks
-          <ArrowRight className="h-3.5 w-3.5 ml-1" />
-        </Button>
       </CardFooter>
     </Card>
   );

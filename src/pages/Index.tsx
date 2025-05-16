@@ -54,7 +54,7 @@ const Index = () => {
           <div className="flex flex-wrap gap-4 justify-center">
             <Button
               size="lg" 
-              className="text-lg"
+              className="text-lg hover:text-white"
               onClick={() => navigate('/tasks')}
             >
               Get Started <ArrowRight className="ml-2 h-5 w-5" />
@@ -85,7 +85,7 @@ const Index = () => {
               <p className="text-foreground/70 mb-4">{feature.description}</p>
               <Button 
                 variant="ghost" 
-                className="text-primary hover:text-primary/90"
+                className="text-primary hover:text-white"
                 onClick={() => navigate(feature.path)}
               >
                 Explore <ArrowRight className="ml-1 h-4 w-4" />
@@ -105,6 +105,7 @@ const Index = () => {
           <Button 
             size="lg"
             onClick={() => navigate('/tasks')}
+            className="hover:text-white"
           >
             Get Started Now
           </Button>
