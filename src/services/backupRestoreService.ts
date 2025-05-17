@@ -55,6 +55,7 @@ export const exportData = async (options: BackupOptions): Promise<string> => {
     if (connectionsData) {
       try {
         connections = JSON.parse(connectionsData);
+        console.log("Exported graph connections:", connections.length);
       } catch (error) {
         console.error("Error parsing connections data:", error);
         connections = [];
@@ -212,7 +213,39 @@ export const importData = async (
     // Import graph connections if selected
     if (options.includeConnections && backupData.data.connections) {
       try {
+        // First update both IndexedDB and localStorage
         localStorage.setItem(CONNECTIONS_KEY, JSON.stringify(backupData.data.connections));
+        
+        // Also attempt to update IndexedDB if available
+        if (window.indexedDB) {
+          const request = indexedDB.open('KnowledgeGalaxyDB', 1);
+          
+          request.onsuccess = (event) => {
+            try {
+              const db = request.result;
+              const tx = db.transaction('connections', 'readwrite');
+              const store = tx.objectStore('connections');
+
+              // Clear existing data first
+              store.clear();
+              
+              // Add all connections from backup
+              backupData.data.connections.forEach((conn: any) => {
+                store.add(conn);
+              });
+              
+              console.log("Successfully updated IndexedDB with imported connections:", backupData.data.connections.length);
+            } catch (dbError) {
+              console.error("Error updating IndexedDB during import:", dbError);
+            }
+          };
+          
+          request.onerror = () => {
+            console.error("IndexedDB error during connection import:", request.error);
+          };
+        }
+        
+        console.log("Successfully imported graph connections:", backupData.data.connections.length);
       } catch (e) {
         errors.push({ 
           type: 'connections', 

@@ -18,12 +18,20 @@ const LoadingScreen = () => {
           />
         </svg>
         
-        <div className="absolute inset-0 flex items-center justify-center">
+        {/* Fixed checkmark positioned absolutely in the center, outside the rotating element */}
+        <div className="absolute inset-0 flex items-center justify-center" style={{ transform: 'rotate(0deg)' }}>
           <div className="w-16 h-16 bg-primary rounded-full opacity-20 animate-pulse"></div>
-          <div className="absolute inset-0 flex items-center justify-center animate-check-appear">
-            <Check className="text-white h-8 w-8 stroke-[3] animate-check-draw" />
-          </div>
         </div>
+      </div>
+      
+      {/* Checkmark positioned absolutely on the page, completely separate from rotating elements */}
+      <div className="absolute" style={{ 
+        top: 'calc(50% - 70px)',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 60
+      }}>
+        <Check className="text-white h-8 w-8 stroke-[3] animate-check-draw" />
       </div>
 
       <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60 mb-6">
@@ -62,25 +70,6 @@ const LoadingScreen = () => {
               transform: rotate(360deg);
             }
           }
-
-          @keyframes check-appear {
-            0% {
-              transform: scale(0);
-              opacity: 0;
-            }
-            50% {
-              transform: scale(1.2);
-              opacity: 0.8;
-            }
-            75% {
-              transform: scale(0.9);
-              opacity: 1;
-            }
-            100% {
-              transform: scale(1);
-              opacity: 1;
-            }
-          }
           
           @keyframes check-draw {
             0% {
@@ -99,11 +88,6 @@ const LoadingScreen = () => {
               stroke-dashoffset: 0;
               opacity: 1;
             }
-          }
-          
-          .animate-check-appear {
-            animation: check-appear 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
-            animation-delay: 0.3s;
           }
           
           .animate-check-draw {
