@@ -177,6 +177,10 @@ Contributions to TaskSphere are welcome!
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## Thank you
+
+1. https://github.com/GPT-Engineer-App (for help me make it faster,lovable.dev ) 
+
 <div align="center">
   <br>
   <a href="https://www.buymeacoffee.com/tasksphere" target="_blank">
