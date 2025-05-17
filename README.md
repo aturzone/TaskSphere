@@ -183,7 +183,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 <div align="center">
   <br>
-  <a href="https://www.buymeacoffee.com/tasksphere" target="_blank">
+  <a href="buymeacoffee.com/aturzonej" target="_blank">
     <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
   </a>
 </div>
