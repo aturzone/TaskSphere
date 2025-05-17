@@ -6,8 +6,15 @@ import { Check } from 'lucide-react';
 const LoadingScreen = () => {
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-background z-50">
-      <div className="w-32 h-32 mb-8 relative animate-spin-slow">
-        <svg viewBox="0 0 200 200" className="w-full h-full">
+      <div className="w-32 h-32 mb-8 relative">
+        {/* Static centered checkmark that doesn't rotate */}
+        <div className="absolute inset-0 flex items-center justify-center z-20">
+          <div className="w-16 h-16 bg-primary rounded-full opacity-20"></div>
+          <Check className="absolute text-white h-8 w-8 stroke-[3] animate-check-draw-reverse" />
+        </div>
+        
+        {/* Rotating circle */}
+        <svg viewBox="0 0 200 200" className="w-full h-full animate-spin-slow">
           <path
             d="M100,10 C150,10 190,50 190,100 C190,150 150,190 100,190 C50,190 10,150 10,100 C10,50 50,10 100,10 Z"
             className="fill-none stroke-primary stroke-[4]"
@@ -17,21 +24,6 @@ const LoadingScreen = () => {
             style={{ animation: 'dash 3s ease-in-out infinite' }}
           />
         </svg>
-        
-        {/* Fixed checkmark positioned absolutely in the center, outside the rotating element */}
-        <div className="absolute inset-0 flex items-center justify-center" style={{ transform: 'rotate(0deg)' }}>
-          <div className="w-16 h-16 bg-primary rounded-full opacity-20 animate-pulse"></div>
-        </div>
-      </div>
-      
-      {/* Checkmark positioned absolutely on the page, completely separate from rotating elements */}
-      <div className="absolute" style={{ 
-        top: 'calc(50% - 70px)',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 60
-      }}>
-        <Check className="text-white h-8 w-8 stroke-[3] animate-check-draw" />
       </div>
 
       <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60 mb-6">
@@ -90,11 +82,37 @@ const LoadingScreen = () => {
             }
           }
           
+          @keyframes check-draw-reverse {
+            0% {
+              stroke-dasharray: 100;
+              stroke-dashoffset: -100;
+              opacity: 0;
+            }
+            30% {
+              opacity: 1;
+            }
+            70% {
+              stroke-dashoffset: 0;
+            }
+            100% {
+              stroke-dasharray: 100;
+              stroke-dashoffset: 0;
+              opacity: 1;
+            }
+          }
+          
           .animate-check-draw {
             stroke-dasharray: 100;
             stroke-dashoffset: 100;
-            animation: check-draw 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-            animation-delay: 0.6s;
+            animation: check-draw 1.5s cubic-bezier(0.65, 0, 0.35, 1) 1;
+            animation-fill-mode: forwards;
+          }
+          
+          .animate-check-draw-reverse {
+            stroke-dasharray: 100;
+            stroke-dashoffset: -100;
+            animation: check-draw-reverse 1.5s cubic-bezier(0.65, 0, 0.35, 1) 1;
+            animation-fill-mode: forwards;
           }
         `
       }} />
