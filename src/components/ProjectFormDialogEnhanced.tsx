@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -213,14 +212,6 @@ const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{project?.id ? 'Edit Project' : 'Create Project'}</DialogTitle>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setOpen(false)} 
-              className="absolute right-4 top-4"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

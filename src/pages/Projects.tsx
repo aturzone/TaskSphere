@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Project } from '@/entities/Project';
 import { Task } from '@/entities/Task';
@@ -166,7 +165,7 @@ const ProjectsPage: React.FC = () => {
         <div className="flex gap-2">
           <Button 
             variant="outline" 
-            onClick={() => navigate('/graph-view')}
+            onClick={() => navigate('/graph')}
           >
             View Knowledge Galaxy
           </Button>

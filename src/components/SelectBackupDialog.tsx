@@ -10,6 +10,7 @@ export interface BackupOptions {
   includeProjects: boolean;
   includeTasks: boolean;
   includeNotes: boolean;
+  includeConnections: boolean;
 }
 
 interface SelectBackupDialogProps {
@@ -30,7 +31,8 @@ const SelectBackupDialog: React.FC<SelectBackupDialogProps> = ({
   const [options, setOptions] = useState<BackupOptions>({
     includeProjects: true,
     includeTasks: true,
-    includeNotes: true
+    includeNotes: true,
+    includeConnections: true
   });
   const { toast } = useToast();
 
@@ -43,7 +45,7 @@ const SelectBackupDialog: React.FC<SelectBackupDialogProps> = ({
 
   const handleConfirm = () => {
     // Ensure at least one option is selected
-    if (!options.includeProjects && !options.includeTasks && !options.includeNotes) {
+    if (!options.includeProjects && !options.includeTasks && !options.includeNotes && !options.includeConnections) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -96,6 +98,15 @@ const SelectBackupDialog: React.FC<SelectBackupDialogProps> = ({
               onCheckedChange={() => handleToggleOption('includeNotes')}
             />
             <Label htmlFor="notes">Notes</Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="connections" 
+              checked={options.includeConnections}
+              onCheckedChange={() => handleToggleOption('includeConnections')}
+            />
+            <Label htmlFor="connections">Graph Connections</Label>
           </div>
         </div>
         

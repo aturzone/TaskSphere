@@ -23,6 +23,7 @@ export interface GraphConnection {
   targetId: string;
   strength: number;
   createdAt: string;
+  userId?: string;
 }
 
 interface GraphNode {
@@ -54,6 +55,12 @@ const getNodeId = (node: string | GraphNode | null): string => {
   return node?.id || '';
 };
 
+// Define a constant key for storing graph connections in IndexedDB
+const GRAPH_CONNECTIONS_KEY = 'graph_connections';
+const GRAPH_CONNECTIONS_STORE = 'connections';
+const DB_NAME = 'KnowledgeGalaxyDB';
+const DB_VERSION = 1;
+
 const NetworkGraph: React.FC<NetworkGraphProps> = ({ viewMode, focusMode = true }) => {
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [links, setLinks] = useState<GraphLink[]>([]);
@@ -72,6 +79,7 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({ viewMode, focusMode = true 
   const [highlightedLinks, setHighlightedLinks] = useState<GraphLink[]>([]);
   const [persistedConnections, setPersistedConnections] = useState<GraphConnection[]>([]);
   const [connectedNodeIds, setConnectedNodeIds] = useState<Set<string>>(new Set());
+  const [dbInitialized, setDbInitialized] = useState<boolean>(false);
   
   const svgRef = useRef<SVGSVGElement>(null);
   const { currentUser } = useAppLevelAuth();
@@ -100,43 +108,246 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({ viewMode, focusMode = true 
     }
   };
 
-  // Load persisted connections from database
+  // Initialize IndexedDB
   useEffect(() => {
-    const loadConnections = async () => {
+    const initializeDB = async () => {
       try {
-        // Get connections from database (custom implementation)
-        const connections = await getGraphConnections();
-        setPersistedConnections(connections);
+        await openGraphDatabase();
+        setDbInitialized(true);
+        console.log("IndexedDB initialized successfully");
       } catch (error) {
-        console.error("Error loading saved connections:", error);
+        console.error("Error initializing IndexedDB:", error);
+        toast({
+          title: "Database Error",
+          description: "Could not initialize connection storage. Your connections may not be saved.",
+          variant: "destructive",
+        });
       }
     };
     
-    loadConnections();
+    initializeDB();
   }, []);
 
-  // Helper function to get graph connections from database
-  const getGraphConnections = async (): Promise<GraphConnection[]> => {
+  // Load persisted connections from database whenever the component mounts or the database gets initialized
+  useEffect(() => {
+    if (currentUser && dbInitialized) {
+      loadConnections();
+    }
+  }, [currentUser, dbInitialized]);
+  
+  // Helper function to open the IndexedDB database
+  const openGraphDatabase = async (): Promise<IDBDatabase> => {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        // Create object store for connections if it doesn't exist
+        if (!db.objectStoreNames.contains(GRAPH_CONNECTIONS_STORE)) {
+          const store = db.createObjectStore(GRAPH_CONNECTIONS_STORE, { keyPath: 'id' });
+          store.createIndex('userId', 'userId', { unique: false });
+          store.createIndex('sourceId', 'sourceId', { unique: false });
+          store.createIndex('targetId', 'targetId', { unique: false });
+        }
+      };
+      
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+      
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
+  };
+  
+  // Helper function to get graph connections from IndexedDB
+  const loadConnections = async () => {
     try {
-      const connectionsData = localStorage.getItem('graph-connections');
-      return connectionsData ? JSON.parse(connectionsData) : [];
+      if (!dbInitialized) {
+        console.log("Database not initialized yet, trying to initialize");
+        await openGraphDatabase();
+        setDbInitialized(true);
+      }
+      
+      const db = await openGraphDatabase();
+      const transaction = db.transaction(GRAPH_CONNECTIONS_STORE, 'readonly');
+      const store = transaction.objectStore(GRAPH_CONNECTIONS_STORE);
+      
+      const userId = currentUser?.id;
+      if (!userId) {
+        console.log("No user ID found for loading connections");
+        return;
+      }
+      
+      console.log("Loading connections for user:", userId);
+      
+      // Get connections for the current user using userId index
+      const userIndex = store.index('userId');
+      const userConnections = await new Promise<GraphConnection[]>((resolve) => {
+        const request = userIndex.getAll(userId);
+        
+        request.onsuccess = () => {
+          const connections = request.result || [];
+          console.log(`Found ${connections.length} connections for user ${userId}`);
+          resolve(connections);
+        };
+        
+        request.onerror = () => {
+          console.error("Error getting connections:", request.error);
+          resolve([]);
+        };
+      });
+      
+      setPersistedConnections(userConnections);
+      console.log("Loaded graph connections:", userConnections.length);
+      
+      db.close();
     } catch (error) {
-      console.error("Error retrieving graph connections:", error);
-      return [];
+      console.error("Error loading saved connections:", error);
+      // Fallback to local storage if IndexedDB fails
+      try {
+        const connectionsString = localStorage.getItem(GRAPH_CONNECTIONS_KEY);
+        if (connectionsString) {
+          const storedConnections = JSON.parse(connectionsString);
+          const userConnections = storedConnections.filter((conn: GraphConnection) => 
+            conn.userId === currentUser?.id
+          );
+          setPersistedConnections(userConnections);
+          console.log("Loaded connections from localStorage fallback:", userConnections.length);
+        }
+      } catch (fallbackError) {
+        console.error("Local storage fallback also failed:", fallbackError);
+      }
     }
   };
 
-  // Helper function to save graph connections to database
+  // Helper function to save graph connections to IndexedDB
   const saveGraphConnections = async (connections: GraphConnection[]): Promise<void> => {
-    try {
-      localStorage.setItem('graph-connections', JSON.stringify(connections));
-    } catch (error) {
-      console.error("Error saving graph connections:", error);
+    if (!currentUser?.id) {
+      console.error("Cannot save connections - no user ID");
       toast({
         title: "Error",
-        description: "Could not save connections. Please try again.",
+        description: "User not authenticated. Connections cannot be saved.",
         variant: "destructive"
       });
+      return;
+    }
+    
+    try {
+      if (!dbInitialized) {
+        console.log("Database not initialized yet, trying to initialize");
+        await openGraphDatabase();
+        setDbInitialized(true);
+      }
+      
+      // Ensure each connection has the userId field
+      const connectionsWithUser = connections.map(conn => ({
+        ...conn,
+        userId: currentUser.id
+      }));
+      
+      const db = await openGraphDatabase();
+      const transaction = db.transaction(GRAPH_CONNECTIONS_STORE, 'readwrite');
+      const store = transaction.objectStore(GRAPH_CONNECTIONS_STORE);
+      const userId = currentUser.id;
+      
+      // First clear existing connections for this user
+      const userIndex = store.index('userId');
+      const userConnectionsRequest = userIndex.getAll(userId);
+      
+      userConnectionsRequest.onsuccess = async () => {
+        const existingConnections = userConnectionsRequest.result || [];
+        console.log(`Found ${existingConnections.length} existing connections to replace`);
+        
+        // Delete all existing connections for this user
+        for (const conn of existingConnections) {
+          await new Promise<void>((resolve) => {
+            const deleteRequest = store.delete(conn.id);
+            deleteRequest.onsuccess = () => resolve();
+            deleteRequest.onerror = () => {
+              console.error("Error deleting connection:", deleteRequest.error);
+              resolve();
+            };
+          });
+        }
+        
+        // Add all the new connections
+        for (const conn of connectionsWithUser) {
+          await new Promise<void>((resolve) => {
+            const addRequest = store.add(conn);
+            addRequest.onsuccess = () => resolve();
+            addRequest.onerror = () => {
+              console.error("Error adding connection:", addRequest.error);
+              resolve();
+            };
+          });
+        }
+        
+        console.log(`Saved ${connectionsWithUser.length} new connections`);
+        
+        // Update the persisted connections state
+        setPersistedConnections(connectionsWithUser);
+        
+        // Also save to localStorage as a backup
+        localStorage.setItem(GRAPH_CONNECTIONS_KEY, JSON.stringify(connectionsWithUser));
+        
+        db.close();
+        
+        toast({
+          title: "Connections saved",
+          description: `Saved ${connectionsWithUser.length} connections successfully`,
+        });
+      };
+      
+      userConnectionsRequest.onerror = () => {
+        console.error("Error getting user connections:", userConnectionsRequest.error);
+        db.close();
+        
+        // Fallback to localStorage
+        try {
+          localStorage.setItem(GRAPH_CONNECTIONS_KEY, JSON.stringify(connectionsWithUser));
+          console.log("Saved connections to localStorage fallback");
+          
+          toast({
+            title: "Connections saved",
+            description: "Saved connections using backup method",
+          });
+        } catch (fallbackError) {
+          console.error("Local storage fallback also failed:", fallbackError);
+          toast({
+            title: "Error",
+            description: "Could not save connections. Please try again.",
+            variant: "destructive"
+          });
+        }
+      };
+      
+    } catch (error) {
+      console.error("Error saving graph connections:", error);
+      
+      // Fallback to localStorage
+      try {
+        if (currentUser?.id) {
+          const connectionsWithUser = connections.map(conn => ({
+            ...conn,
+            userId: currentUser.id
+          }));
+          localStorage.setItem(GRAPH_CONNECTIONS_KEY, JSON.stringify(connectionsWithUser));
+          console.log("Saved connections to localStorage fallback");
+          toast({
+            title: "Connections saved",
+            description: "Saved connections using backup method",
+          });
+        }
+      } catch (fallbackError) {
+        console.error("Local storage fallback also failed:", fallbackError);
+        toast({
+          title: "Error",
+          description: "Could not save connections. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -169,7 +380,7 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({ viewMode, focusMode = true 
         simulation.stop();
       }
     };
-  }, [currentUser, viewMode]);
+  }, [currentUser, viewMode, persistedConnections]);
 
   useEffect(() => {
     if (nodes.length > 0 && links.length > 0) {
@@ -241,6 +452,7 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({ viewMode, focusMode = true 
       
       // Add persisted connections if available
       if (persistedConnections.length > 0) {
+        console.log("Adding persisted connections:", persistedConnections.length);
         persistedConnections.forEach(connection => {
           // Check if both nodes exist in the current graph
           const sourceExists = graphNodes.some(node => node.id === connection.sourceId);
@@ -564,29 +776,26 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({ viewMode, focusMode = true 
     if (!selectedNode) return;
     
     try {
-      // Get current persisted connections
-      const currentConnections = await getGraphConnections();
-      
-      // Remove all existing connections for this node
-      const updatedConnections = currentConnections.filter(conn => 
+      // Extract existing connections that don't involve the selected node
+      const otherNodeConnections = persistedConnections.filter(conn => 
         conn.sourceId !== selectedNode.id && conn.targetId !== selectedNode.id
       );
       
-      // Add new connections based on selections
-      const newConnections: GraphConnection[] = selectedConnectionTargets.map(targetId => ({
+      // Create new connection objects for the selected targets
+      const newNodeConnections = selectedConnectionTargets.map(targetId => ({
         id: generateId(),
         sourceId: selectedNode.id,
         targetId: targetId,
         strength: 0.7,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        userId: currentUser?.id
       }));
       
-      // Merge existing and new connections
-      const finalConnections = [...updatedConnections, ...newConnections];
+      // Combine all connections
+      const updatedConnections = [...otherNodeConnections, ...newNodeConnections];
       
       // Save to database
-      await saveGraphConnections(finalConnections);
-      setPersistedConnections(finalConnections);
+      await saveGraphConnections(updatedConnections);
       
       // Update links in the graph
       const updatedLinks = links.filter(link => {
@@ -609,6 +818,9 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({ viewMode, focusMode = true 
       
       // Update highlighted links
       highlightAllNodeConnections(selectedNode.id);
+      
+      // Update persisted connections state
+      setPersistedConnections(updatedConnections);
       
       toast({
         title: "Connections updated",

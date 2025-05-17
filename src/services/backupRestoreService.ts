@@ -7,6 +7,7 @@ export interface BackupOptions {
   includeProjects: boolean;
   includeTasks: boolean;
   includeNotes: boolean;
+  includeConnections: boolean;
 }
 
 interface BackupData {
@@ -17,10 +18,12 @@ interface BackupData {
     projects?: any[];
     tasks?: any[];
     notes?: any[];
+    connections?: any[];
   };
 }
 
 const BACKUP_VERSION = 1;
+const CONNECTIONS_KEY = 'graph-connections';
 
 // Helper to strip system-generated fields before re-inserting
 const stripSystemFields = (entity: any) => {
@@ -32,6 +35,7 @@ export const exportData = async (options: BackupOptions): Promise<string> => {
   let projects: any[] = [];
   let tasks: any[] = [];
   let notes: any[] = [];
+  let connections: any[] = [];
   
   if (options.includeProjects) {
     projects = await Project.list();
@@ -45,6 +49,19 @@ export const exportData = async (options: BackupOptions): Promise<string> => {
     notes = await Note.list();
   }
 
+  if (options.includeConnections) {
+    // Retrieve graph connections from localStorage
+    const connectionsData = localStorage.getItem(CONNECTIONS_KEY);
+    if (connectionsData) {
+      try {
+        connections = JSON.parse(connectionsData);
+      } catch (error) {
+        console.error("Error parsing connections data:", error);
+        connections = [];
+      }
+    }
+  }
+
   const backupData: BackupData = {
     version: BACKUP_VERSION,
     timestamp: new Date().toISOString(),
@@ -53,6 +70,7 @@ export const exportData = async (options: BackupOptions): Promise<string> => {
       ...(options.includeProjects && { projects }),
       ...(options.includeTasks && { tasks }),
       ...(options.includeNotes && { notes }),
+      ...(options.includeConnections && { connections }),
     },
   };
 
@@ -188,6 +206,18 @@ export const importData = async (
         } catch (e) {
           errors.push({ type: 'note', originalId: note.id, error: (e as Error).message });
         }
+      }
+    }
+
+    // Import graph connections if selected
+    if (options.includeConnections && backupData.data.connections) {
+      try {
+        localStorage.setItem(CONNECTIONS_KEY, JSON.stringify(backupData.data.connections));
+      } catch (e) {
+        errors.push({ 
+          type: 'connections', 
+          error: `Failed to save graph connections: ${(e as Error).message}` 
+        });
       }
     }
 

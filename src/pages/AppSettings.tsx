@@ -141,6 +141,9 @@ const AppSettings = () => {
       for (const task of tasks) { await Task.delete(task.id); }
       for (const note of notes) { await Note.delete(note.id); }
       
+      // Clear graph connections
+      localStorage.removeItem('graph-connections');
+      
       toast({
         title: "Data Cleared",
         description: "All application data has been cleared successfully.",

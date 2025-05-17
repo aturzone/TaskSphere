@@ -1,13 +1,47 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import NetworkGraph from '@/components/NetworkGraph';
 import { Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useToast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
+
+// Key for storing graph settings in local storage
+const GRAPH_SETTINGS_KEY = 'graph-view-settings';
 
 const GraphViewPage = () => {
   const [viewMode, setViewMode] = useState<'projects' | 'steps'>('projects');
   const [focusMode, setFocusMode] = useState<boolean>(true);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  
+  // Load saved settings when component mounts
+  useEffect(() => {
+    const savedSettings = localStorage.getItem(GRAPH_SETTINGS_KEY);
+    if (savedSettings) {
+      try {
+        const { viewMode: savedViewMode, focusMode: savedFocusMode } = JSON.parse(savedSettings);
+        if (savedViewMode) setViewMode(savedViewMode);
+        if (savedFocusMode !== undefined) setFocusMode(savedFocusMode);
+      } catch (error) {
+        console.error('Error loading graph settings:', error);
+      }
+    }
+  }, []);
+  
+  // Save settings when they change
+  useEffect(() => {
+    const settings = { viewMode, focusMode };
+    localStorage.setItem(GRAPH_SETTINGS_KEY, JSON.stringify(settings));
+  }, [viewMode, focusMode]);
+  
+  const handleViewModeChange = (value: 'projects' | 'steps') => {
+    setViewMode(value);
+  };
   
   return (
     <div className="container mx-auto py-8 px-4 md:px-6 h-[calc(100vh-10rem)]">
@@ -20,7 +54,7 @@ const GraphViewPage = () => {
         <div className="flex items-center space-x-4">
           <Select 
             value={viewMode} 
-            onValueChange={(value: 'projects' | 'steps') => setViewMode(value)}
+            onValueChange={handleViewModeChange}
           >
             <SelectTrigger className="w-[180px] neo-blur text-white">
               <SelectValue placeholder="View Mode" />
@@ -30,11 +64,29 @@ const GraphViewPage = () => {
               <SelectItem value="steps">Project Steps View</SelectItem>
             </SelectContent>
           </Select>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="focus-mode" 
+                    checked={focusMode}
+                    onCheckedChange={setFocusMode}
+                  />
+                  <Label htmlFor="focus-mode" className="text-white">Focus Mode</Label>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Highlight connected nodes when selected</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           
           <Button 
             variant="outline" 
-            className="neo-blur text-white hover:text-primary"
-            onClick={() => window.history.back()}
+            className="neo-blur text-white hover:bg-primary hover:text-white transition-colors"
+            onClick={() => navigate('/projects')}
           >
             Back to Projects
           </Button>

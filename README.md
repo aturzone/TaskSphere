@@ -9,6 +9,7 @@
     <a href="#installation">Installation</a> •
     <a href="#usage">Usage</a> •
     <a href="#backup-and-restore">Backup</a> •
+    <a href="#supported-platforms">Platforms</a> •
     <a href="#contributing">Contributing</a>
   </p>
 </div>
@@ -23,6 +24,8 @@ TaskFlow is a comprehensive productivity app designed to help you manage your pr
 - 📅 **Calendar Integration**: View all your tasks and projects in a calendar view
 - 🔔 **Notifications**: Get reminded of upcoming deadlines and important events
 - 💾 **Selective Backup**: Export/import only the data you need
+- 🌌 **Knowledge Galaxy**: Visualize relationships between your tasks, projects and notes
+- 📊 **Project Steps**: Break down projects into manageable steps with progress tracking
 
 ## Installation
 
@@ -58,6 +61,8 @@ Projects are the main organizational units. Each project can contain multiple ta
 - Create projects with start/end dates
 - Track project progress automatically based on task completion
 - Set reminders for important project milestones
+- Define project steps with weight percentages
+- Visualize project relationships in the Knowledge Galaxy
 
 ### Tasks
 
@@ -87,6 +92,16 @@ The calendar view provides a comprehensive overview of your schedule:
 - Easily navigate to specific dates
 - Get a visual representation of busy periods
 
+### Knowledge Galaxy
+
+The Knowledge Galaxy provides a dynamic graph visualization of your workflow:
+
+- View relationships between projects, tasks, and notes
+- Create custom connections between different entities
+- Zoom and navigate through your knowledge network
+- Filter by different entity types
+- Focus on specific nodes to highlight relationships
+
 ## Backup and Restore
 
 TaskFlow allows you to selectively back up and restore your data:
@@ -96,6 +111,21 @@ TaskFlow allows you to selectively back up and restore your data:
 3. Select which data types to include (Projects, Tasks, Notes)
 4. To restore from a backup, use the **Import Data** option
 5. Select which parts of the backup to restore
+
+## Supported Platforms
+
+TaskFlow is built with web technologies and can run on multiple platforms:
+
+- **Desktop**: Windows, macOS, and Linux via Electron packaging
+- **Web**: Any modern browser (Chrome, Firefox, Safari, Edge)
+- **Mobile**: Progressive Web App support for iOS and Android
+- **Offline**: Full functionality available without internet connection
+
+### System Requirements
+
+- **Desktop**: 4GB RAM, 250MB free disk space
+- **Mobile**: Modern smartphone with updated browser
+- **Browser**: Chrome 70+, Firefox 63+, Safari 12+, Edge 79+
 
 ## Contributing
 

@@ -14,10 +14,10 @@ interface NoteCardProps {
 
 const NoteCard: React.FC<NoteCardProps> = ({ note, projectName, onEdit, onDelete }) => {
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <CardContent className="p-4" onClick={() => onEdit(note)}>
+    <Card className="overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full">
+      <CardContent className="p-4 flex-grow" onClick={() => onEdit(note)}>
         <h3 className="font-semibold text-lg mb-2 line-clamp-1">{note.title}</h3>
-        <p className="text-sm text-muted-foreground line-clamp-4">
+        <p className="text-sm text-muted-foreground line-clamp-4 min-h-[6rem]">
           {note.content || 'No content'}
         </p>
         
@@ -27,7 +27,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, projectName, onEdit, onDelete
           </div>
         )}
       </CardContent>
-      <CardFooter className="bg-secondary/50 px-4 py-3 flex justify-between items-center">
+      <CardFooter className="bg-secondary/50 px-4 py-3 flex justify-between items-center mt-auto">
         <div className="flex items-center text-xs text-muted-foreground">
           <CalendarDays className="h-3 w-3 mr-1" />
           <span>{formatDate(note.updatedAt || note.createdAt)}</span>
