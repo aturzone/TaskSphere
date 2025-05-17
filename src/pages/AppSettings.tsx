@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +19,7 @@ import { exportData, importData, downloadBackupFile, BackupOptions } from '@/ser
 import { Project } from '@/entities/Project';
 import { Task } from '@/entities/Task';
 import { Note } from '@/entities/Note';
+import { ProjectStep } from '@/entities/ProjectStep';
 import SelectBackupDialog from '@/components/SelectBackupDialog';
 
 const AppSettings = () => {
@@ -135,11 +135,13 @@ const AppSettings = () => {
       const projects = await Project.list();
       const tasks = await Task.list();
       const notes = await Note.list();
+      const projectSteps = await ProjectStep.getAll();
       
       // Delete all data
       for (const project of projects) { await Project.delete(project.id); }
       for (const task of tasks) { await Task.delete(task.id); }
       for (const note of notes) { await Note.delete(note.id); }
+      for (const step of projectSteps) { await ProjectStep.delete(step.id); }
       
       // Clear graph connections
       localStorage.removeItem('graph-connections');

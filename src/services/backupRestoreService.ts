@@ -2,12 +2,14 @@
 import { Project } from '@/entities/Project';
 import { Task } from '@/entities/Task';
 import { Note } from '@/entities/Note';
+import { ProjectStep } from '@/entities/ProjectStep';
 
 export interface BackupOptions {
   includeProjects: boolean;
   includeTasks: boolean;
   includeNotes: boolean;
   includeConnections: boolean;
+  includeProjectSteps: boolean;
 }
 
 interface BackupData {
@@ -19,6 +21,7 @@ interface BackupData {
     tasks?: any[];
     notes?: any[];
     connections?: any[];
+    projectSteps?: any[];
   };
 }
 
@@ -36,6 +39,7 @@ export const exportData = async (options: BackupOptions): Promise<string> => {
   let tasks: any[] = [];
   let notes: any[] = [];
   let connections: any[] = [];
+  let projectSteps: any[] = [];
   
   if (options.includeProjects) {
     projects = await Project.list();
@@ -63,6 +67,11 @@ export const exportData = async (options: BackupOptions): Promise<string> => {
     }
   }
 
+  if (options.includeProjectSteps) {
+    projectSteps = await ProjectStep.getAll();
+    console.log("Exported project steps:", projectSteps.length);
+  }
+
   const backupData: BackupData = {
     version: BACKUP_VERSION,
     timestamp: new Date().toISOString(),
@@ -72,6 +81,7 @@ export const exportData = async (options: BackupOptions): Promise<string> => {
       ...(options.includeTasks && { tasks }),
       ...(options.includeNotes && { notes }),
       ...(options.includeConnections && { connections }),
+      ...(options.includeProjectSteps && { projectSteps }),
     },
   };
 
@@ -105,6 +115,33 @@ export const importData = async (
           if (project.id) oldIdToNewIdMap[`project-${project.id}`] = newProject.id;
         } catch (e) {
           errors.push({ type: 'project', originalId: project.id, error: (e as Error).message });
+        }
+      }
+    }
+
+    // Clear and import Project Steps if selected
+    if (options.includeProjectSteps && backupData.data.projectSteps) {
+      // Clear existing project steps
+      const existingSteps = await ProjectStep.getAll();
+      for (const step of existingSteps) { await ProjectStep.delete(step.id); }
+      
+      // Import project steps from backup
+      for (const step of backupData.data.projectSteps) {
+        try {
+          const stepData = stripSystemFields(step);
+          
+          if (step.projectId) {
+            if (oldIdToNewIdMap[`project-${step.projectId}`]) {
+              stepData.projectId = oldIdToNewIdMap[`project-${step.projectId}`];
+            } else if (options.includeProjects) {
+              stepData.projectId = undefined;
+            }
+          }
+          
+          const newStep = await ProjectStep.create(stepData);
+          if (step.id) oldIdToNewIdMap[`projectStep-${step.id}`] = newStep.id;
+        } catch (e) {
+          errors.push({ type: 'projectStep', originalId: step.id, error: (e as Error).message });
         }
       }
     }

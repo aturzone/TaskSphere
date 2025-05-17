@@ -1,11 +1,12 @@
 
 <div align="center">
-  <img src="https://github.com/identicons/app/blob/main/public/favicon.ico?raw=true" width="100" height="100">
-  <h1>TaskFlow App</h1>
-  <p>A modern offline task and project management application</p>
+  <img src="https://lovable-uploads.s3.amazonaws.com/685724c3-7745-404b-b44c-c406a957019b.png" width="100" height="100">
+  <h1>TaskSphere</h1>
+  <p>Your modern offline productivity and knowledge management hub</p>
   
   <p>
     <a href="#features">Features</a> •
+    <a href="#screenshots">Screenshots</a> •
     <a href="#installation">Installation</a> •
     <a href="#usage">Usage</a> •
     <a href="#backup-and-restore">Backup</a> •
@@ -16,7 +17,7 @@
 
 ## Features
 
-TaskFlow is a comprehensive productivity app designed to help you manage your projects, tasks, and notes in an organized way:
+TaskSphere is a comprehensive productivity app designed to help you manage your projects, tasks, and notes in an organized way:
 
 - 📋 **Project Management**: Create and manage projects with detailed descriptions
 - ✅ **Task Tracking**: Organize tasks with priorities, due dates, and status tracking
@@ -26,6 +27,40 @@ TaskFlow is a comprehensive productivity app designed to help you manage your pr
 - 💾 **Selective Backup**: Export/import only the data you need
 - 🌌 **Knowledge Galaxy**: Visualize relationships between your tasks, projects and notes
 - 📊 **Project Steps**: Break down projects into manageable steps with progress tracking
+
+## Screenshots
+
+<details open>
+<summary><b>Desktop Version</b></summary>
+<br>
+
+<div align="center">
+  <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+    <img src="https://lovable-uploads.s3.amazonaws.com/0b6232f9-e50e-4abc-8796-cf352cd5b28e.png" width="400" alt="Knowledge Galaxy" style="border-radius: 8px;">
+    <img src="https://lovable-uploads.s3.amazonaws.com/f1a24e13-d1dc-48bc-9284-5d68497cd0ad.png" width="400" alt="Calendar View" style="border-radius: 8px;">
+    <img src="https://lovable-uploads.s3.amazonaws.com/61dc7e64-0e52-42b8-ad17-9eaeb4016943.png" width="400" alt="Projects View" style="border-radius: 8px;">
+    <img src="https://lovable-uploads.s3.amazonaws.com/39eb6209-683f-431e-b287-b8fc9401cb96.png" width="400" alt="Settings View" style="border-radius: 8px;">
+    <img src="https://lovable-uploads.s3.amazonaws.com/e3499cb6-8ffe-4b4f-adb9-fabe3c9b205f.png" width="400" alt="Tasks View" style="border-radius: 8px;">
+    <img src="https://lovable-uploads.s3.amazonaws.com/2b8084ed-d1a4-4870-a7ce-e4fa3782876a.png" width="400" alt="Notes View" style="border-radius: 8px;">
+  </div>
+</div>
+</details>
+
+<details>
+<summary><b>Mobile Version</b></summary>
+<br>
+
+<div align="center">
+  <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+    <img src="https://lovable-uploads.s3.amazonaws.com/7b0b30aa-8e70-4095-bc16-aa2a45873d77.png" width="200" alt="Mobile Galaxy View" style="border-radius: 8px;">
+    <img src="https://lovable-uploads.s3.amazonaws.com/5017a8eb-7b93-473c-83dd-6f86e4e64f1a.png" width="200" alt="Mobile Tasks View" style="border-radius: 8px;">
+    <img src="https://lovable-uploads.s3.amazonaws.com/a9173481-0f3f-4ef3-982e-72e9b1446a90.png" width="200" alt="Mobile Calendar View" style="border-radius: 8px;">
+    <img src="https://lovable-uploads.s3.amazonaws.com/4310e6c0-ac6c-469f-b2e1-f06aa83d1e6e.png" width="200" alt="Mobile Notes View" style="border-radius: 8px;">
+    <img src="https://lovable-uploads.s3.amazonaws.com/f5a7a0ca-ca0e-4af9-b01e-afe8049c5896.png" width="200" alt="Mobile Projects View" style="border-radius: 8px;">
+    <img src="https://lovable-uploads.s3.amazonaws.com/6aab43f5-2199-4ba6-a00d-de1d892258d8.png" width="200" alt="Mobile Settings View" style="border-radius: 8px;">
+  </div>
+</div>
+</details>
 
 ## Installation
 
@@ -38,10 +73,10 @@ TaskFlow is a comprehensive productivity app designed to help you manage your pr
 
 ```sh
 # Clone the repository
-git clone https://github.com/yourusername/taskflow.git
+git clone https://github.com/yourusername/tasksphere.git
 
 # Navigate to the project directory
-cd taskflow
+cd tasksphere
 
 # Install dependencies
 npm install
@@ -104,7 +139,7 @@ The Knowledge Galaxy provides a dynamic graph visualization of your workflow:
 
 ## Backup and Restore
 
-TaskFlow allows you to selectively back up and restore your data:
+TaskSphere allows you to selectively back up and restore your data:
 
 1. Go to **Settings > Data Management**
 2. Choose **Export Data** to create a backup
@@ -114,7 +149,7 @@ TaskFlow allows you to selectively back up and restore your data:
 
 ## Supported Platforms
 
-TaskFlow is built with web technologies and can run on multiple platforms:
+TaskSphere is built with web technologies and can run on multiple platforms:
 
 - **Desktop**: Windows, macOS, and Linux via Electron packaging
 - **Web**: Any modern browser (Chrome, Firefox, Safari, Edge)
@@ -129,7 +164,7 @@ TaskFlow is built with web technologies and can run on multiple platforms:
 
 ## Contributing
 
-Contributions to TaskFlow are welcome! 
+Contributions to TaskSphere are welcome! 
 
 1. Fork the repository
 2. Create your feature branch: `git checkout -b feature/amazing-feature`
@@ -143,7 +178,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 <div align="center">
   <br>
-  <a href="https://www.buymeacoffee.com/taskflow" target="_blank">
+  <a href="https://www.buymeacoffee.com/tasksphere" target="_blank">
     <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
   </a>
 </div>

@@ -5,28 +5,12 @@ import { Task, TaskStatus, TaskPriority } from '@/entities/Task';
 import { Note } from '@/entities/Note';
 
 export const createTestData = async () => {
-  // Create test projects
+  // Create introductory project
   const projects = [
     {
-      title: "Build a Robot",
-      description: "Create a robot with basic movement capabilities",
-      color: "#8B5CF6",
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-      userId: "local-user"
-    },
-    {
-      title: "Learn Machine Learning",
-      description: "Study machine learning fundamentals and implement basic models",
-      color: "#3B82F6",
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), // 60 days from now
-      userId: "local-user"
-    },
-    {
-      title: "Garden Project",
-      description: "Design and create a small vegetable garden",
-      color: "#10B981",
+      title: "Getting Started with TaskSphere",
+      description: "Welcome to TaskSphere! This project will help you learn the basics of the application.",
+      color: "#10B981", // Green
       startDate: new Date().toISOString(),
       endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days from now
       userId: "local-user"
@@ -35,93 +19,46 @@ export const createTestData = async () => {
 
   const projectData = [];
   
-  // Create projects and store the results
+  // Create project and store the result
   for (const project of projects) {
     const newProject = await Project.create(project);
     projectData.push(newProject);
   }
 
-  // Create steps for each project
+  // Create steps for the project
   const projectSteps = [
-    // Robot Project Steps
     {
       projectId: projectData[0].id,
-      title: "Research Components",
-      description: "Research and select appropriate components for the robot",
-      weightPercentage: 20,
-      status: "Done" as "NotStarted" | "InProgress" | "Done"
-    },
-    {
-      projectId: projectData[0].id,
-      title: "Design Robot Frame",
-      description: "Create the physical frame design and diagrams",
-      weightPercentage: 25,
-      status: "InProgress" as "NotStarted" | "InProgress" | "Done"
-    },
-    {
-      projectId: projectData[0].id,
-      title: "Build Prototype",
-      description: "Assemble the robot hardware",
-      weightPercentage: 35,
-      status: "NotStarted" as "NotStarted" | "InProgress" | "Done"
-    },
-    {
-      projectId: projectData[0].id,
-      title: "Program Controllers",
-      description: "Write software to control the robot",
+      title: "Explore the Interface",
+      description: "Get familiar with the TaskSphere dashboard and navigation",
       weightPercentage: 20,
       status: "NotStarted" as "NotStarted" | "InProgress" | "Done"
     },
-    
-    // Machine Learning Project Steps
     {
-      projectId: projectData[1].id,
-      title: "Study Fundamentals",
-      description: "Learn basic concepts and algorithms",
-      weightPercentage: 30,
-      status: "InProgress" as "NotStarted" | "InProgress" | "Done"
-    },
-    {
-      projectId: projectData[1].id,
-      title: "Practice with Datasets",
-      description: "Apply algorithms to standard datasets",
-      weightPercentage: 40,
+      projectId: projectData[0].id,
+      title: "Create Your First Task",
+      description: "Add a new task using the 'Add Task' button",
+      weightPercentage: 20,
       status: "NotStarted" as "NotStarted" | "InProgress" | "Done"
     },
     {
-      projectId: projectData[1].id,
-      title: "Build Custom Model",
-      description: "Create a machine learning model for a specific problem",
-      weightPercentage: 30,
+      projectId: projectData[0].id,
+      title: "Organize with Projects",
+      description: "Learn how to create and manage projects",
+      weightPercentage: 20,
       status: "NotStarted" as "NotStarted" | "InProgress" | "Done"
     },
-    
-    // Garden Project Steps
     {
-      projectId: projectData[2].id,
-      title: "Plan Garden Layout",
-      description: "Design the garden layout and select plants",
-      weightPercentage: 15,
-      status: "Done" as "NotStarted" | "InProgress" | "Done"
+      projectId: projectData[0].id,
+      title: "Take Notes",
+      description: "Try the note-taking features",
+      weightPercentage: 20,
+      status: "NotStarted" as "NotStarted" | "InProgress" | "Done"
     },
     {
-      projectId: projectData[2].id,
-      title: "Prepare Soil",
-      description: "Get soil ready with proper nutrients and conditions",
-      weightPercentage: 25,
-      status: "Done" as "NotStarted" | "InProgress" | "Done"
-    },
-    {
-      projectId: projectData[2].id,
-      title: "Plant Seeds/Seedlings",
-      description: "Plant according to the planned layout",
-      weightPercentage: 40,
-      status: "InProgress" as "NotStarted" | "InProgress" | "Done"
-    },
-    {
-      projectId: projectData[2].id,
-      title: "Setup Irrigation",
-      description: "Install a watering system for the garden",
+      projectId: projectData[0].id,
+      title: "Visualize in Knowledge Galaxy",
+      description: "Explore the relationships between your items",
       weightPercentage: 20,
       status: "NotStarted" as "NotStarted" | "InProgress" | "Done"
     }
@@ -132,92 +69,33 @@ export const createTestData = async () => {
     await ProjectStep.create(step);
   }
 
-  // Create tasks for each project
+  // Create introductory tasks
   const tasks = [
-    // Tasks for Robot Project
     {
-      title: "Order robot components",
-      description: "Purchase motors, sensors, and controller board",
-      status: "Done" as TaskStatus,
-      priority: "High" as TaskPriority,
-      projectId: projectData[0].id,
-      dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-      userId: "local-user"
-    },
-    {
-      title: "Sketch robot design",
-      description: "Create detailed drawing of robot structure",
-      status: "InProgress" as TaskStatus,
-      priority: "Medium" as TaskPriority,
-      projectId: projectData[0].id,
-      dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
-      userId: "local-user"
-    },
-    {
-      title: "Learn basic electronics",
-      description: "Study circuit design and soldering",
+      title: "Create your first project",
+      description: "Click on 'Add Project' in the Projects page to get started",
       status: "Todo" as TaskStatus,
       priority: "Medium" as TaskPriority,
       projectId: projectData[0].id,
-      dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-      userId: "local-user"
-    },
-    
-    // Tasks for ML Project
-    {
-      title: "Complete Python refresher",
-      description: "Review Python fundamentals needed for ML",
-      status: "Done" as TaskStatus,
-      priority: "High" as TaskPriority,
-      projectId: projectData[1].id,
-      dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
       userId: "local-user"
     },
     {
-      title: "Read 'Introduction to ML'",
-      description: "Finish first 5 chapters",
-      status: "InProgress" as TaskStatus,
-      priority: "Medium" as TaskPriority,
-      projectId: projectData[1].id,
-      dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-      userId: "local-user"
-    },
-    {
-      title: "Implement linear regression",
-      description: "Write code for basic linear regression algorithm",
+      title: "Explore the Knowledge Galaxy",
+      description: "Check out the graph visualization of your content",
       status: "Todo" as TaskStatus,
       priority: "Low" as TaskPriority,
-      projectId: projectData[1].id,
-      dueDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString(),
-      userId: "local-user"
-    },
-    
-    // Tasks for Garden Project
-    {
-      title: "Buy seeds and soil",
-      description: "Get organic soil, tomato and basil seeds",
-      status: "Done" as TaskStatus,
-      priority: "Medium" as TaskPriority,
-      projectId: projectData[2].id,
-      dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-      userId: "local-user"
-    },
-    {
-      title: "Build raised beds",
-      description: "Construct two 4x8 raised beds",
-      status: "InProgress" as TaskStatus,
-      priority: "High" as TaskPriority,
-      projectId: projectData[2].id,
+      projectId: projectData[0].id,
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       userId: "local-user"
     },
     {
-      title: "Research companion planting",
-      description: "Learn which plants grow well together",
+      title: "Set up your first backup",
+      description: "Go to Settings > Data Management to create a backup",
       status: "Todo" as TaskStatus,
-      priority: "Low" as TaskPriority,
-      projectId: projectData[2].id,
-      dueDate: new Date(Date.now() + 9 * 24 * 60 * 60 * 1000).toISOString(),
+      priority: "High" as TaskPriority,
+      projectId: projectData[0].id,
+      dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
       userId: "local-user"
     }
   ];
@@ -227,24 +105,18 @@ export const createTestData = async () => {
     await Task.create(task);
   }
 
-  // Create notes for each project
+  // Create introductory notes
   const notes = [
     {
-      title: "Robot Design Ideas",
-      content: "- Consider using Arduino Uno for the main controller\n- Need at least 4 motors for mobility\n- Add ultrasonic sensors for obstacle detection\n- Maybe add a camera module later",
+      title: "TaskSphere Quick Tips",
+      content: "## Welcome to TaskSphere!\n\n**Quick Tips:**\n\n- Use the sidebar for navigation\n- Create projects to organize related tasks\n- The Knowledge Galaxy visualizes connections\n- Use priority levels to focus your work\n- Regular backups keep your data safe",
       projectId: projectData[0].id,
       userId: "local-user"
     },
     {
-      title: "ML Resources",
-      content: "## Good Resources for Machine Learning\n1. Stanford's CS229 course\n2. 'Hands-on Machine Learning with Scikit-Learn'\n3. Kaggle competitions for practice\n4. PyTorch documentation",
-      projectId: projectData[1].id,
-      userId: "local-user"
-    },
-    {
-      title: "Garden Plant List",
-      content: "### Vegetables\n- Tomatoes (Roma and Cherry)\n- Bell peppers\n- Zucchini\n- Lettuce\n\n### Herbs\n- Basil\n- Rosemary\n- Mint (in separate container!)\n\nRemember to rotate crops next season.",
-      projectId: projectData[2].id,
+      title: "Keyboard Shortcuts",
+      content: "# TaskSphere Keyboard Shortcuts\n\n- **N**: Create new task\n- **P**: Create new project\n- **Ctrl+B**: Toggle sidebar\n- **Ctrl+F**: Search\n- **Ctrl+S**: Save current item\n- **Esc**: Close dialogs",
+      projectId: projectData[0].id,
       userId: "local-user"
     }
   ];
@@ -254,30 +126,15 @@ export const createTestData = async () => {
     await Note.create(note);
   }
 
-  // Create some unassociated tasks
-  const generalTasks = [
-    {
-      title: "Pay utility bills",
-      description: "Water, electricity, internet",
-      status: "Todo" as TaskStatus,
-      priority: "High" as TaskPriority,
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-      userId: "local-user"
-    },
-    {
-      title: "Schedule dentist appointment",
-      description: "Need annual checkup",
-      status: "Todo" as TaskStatus,
-      priority: "Medium" as TaskPriority,
-      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-      userId: "local-user"
-    }
-  ];
-  
-  // Create general tasks
-  for (const task of generalTasks) {
-    await Task.create(task);
-  }
+  // Create one standalone task
+  await Task.create({
+    title: "Check out the calendar view",
+    description: "See all your scheduled items in one place",
+    status: "Todo" as TaskStatus,
+    priority: "Low" as TaskPriority,
+    dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    userId: "local-user"
+  });
   
   return true;
 };
