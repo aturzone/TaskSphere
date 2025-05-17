@@ -1,6 +1,6 @@
 
 <div align="center">
-  <img src="https://lovable-uploads.s3.amazonaws.com/685724c3-7745-404b-b44c-c406a957019b.png" width="100" height="100">
+  <img src="README-pictures/Screenshot From 2025-05-17 17-04-00.png" width="100" height="100">
   <h1>TaskSphere</h1>
   <p>Your modern offline productivity and knowledge management hub</p>
   
@@ -36,12 +36,13 @@ TaskSphere is a comprehensive productivity app designed to help you manage your 
 
 <div align="center">
   <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
-    <img src="https://lovable-uploads.s3.amazonaws.com/0b6232f9-e50e-4abc-8796-cf352cd5b28e.png" width="400" alt="Knowledge Galaxy" style="border-radius: 8px;">
-    <img src="https://lovable-uploads.s3.amazonaws.com/f1a24e13-d1dc-48bc-9284-5d68497cd0ad.png" width="400" alt="Calendar View" style="border-radius: 8px;">
-    <img src="https://lovable-uploads.s3.amazonaws.com/61dc7e64-0e52-42b8-ad17-9eaeb4016943.png" width="400" alt="Projects View" style="border-radius: 8px;">
-    <img src="https://lovable-uploads.s3.amazonaws.com/39eb6209-683f-431e-b287-b8fc9401cb96.png" width="400" alt="Settings View" style="border-radius: 8px;">
-    <img src="https://lovable-uploads.s3.amazonaws.com/e3499cb6-8ffe-4b4f-adb9-fabe3c9b205f.png" width="400" alt="Tasks View" style="border-radius: 8px;">
-    <img src="https://lovable-uploads.s3.amazonaws.com/2b8084ed-d1a4-4870-a7ce-e4fa3782876a.png" width="400" alt="Notes View" style="border-radius: 8px;">
+    <img src="README-pictures/Screenshot From 2025-05-17 16-45-30.png" width="400" alt="Knowledge Galaxy" style="border-radius: 8px;">
+    <img src="README-pictures/Screenshot From 2025-05-17 16-45-36.png" width="400" alt="Calendar View" style="border-radius: 8px;">
+    <img src="README-pictures/Screenshot From 2025-05-17 16-45-45.png" width="400" alt="Projects View" style="border-radius: 8px;">
+    <img src="README-pictures/Screenshot From 2025-05-17 16-45-50.png" width="400" alt="Settings View" style="border-radius: 8px;">
+    <img src="README-pictures/Screenshot From 2025-05-17 16-46-02.png" width="400" alt="Tasks View" style="border-radius: 8px;">
+    <img src="README-pictures/Screenshot From 2025-05-17 16-46-14.png" width="400" alt="Notes View" style="border-radius: 8px;">
+    <img src="README-pictures/Screenshot From 2025-05-17 16-46-33.png" width="400" alt="Additional View" style="border-radius: 8px;">
   </div>
 </div>
 </details>
@@ -52,12 +53,12 @@ TaskSphere is a comprehensive productivity app designed to help you manage your 
 
 <div align="center">
   <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
-    <img src="https://lovable-uploads.s3.amazonaws.com/7b0b30aa-8e70-4095-bc16-aa2a45873d77.png" width="200" alt="Mobile Galaxy View" style="border-radius: 8px;">
-    <img src="https://lovable-uploads.s3.amazonaws.com/5017a8eb-7b93-473c-83dd-6f86e4e64f1a.png" width="200" alt="Mobile Tasks View" style="border-radius: 8px;">
-    <img src="https://lovable-uploads.s3.amazonaws.com/a9173481-0f3f-4ef3-982e-72e9b1446a90.png" width="200" alt="Mobile Calendar View" style="border-radius: 8px;">
-    <img src="https://lovable-uploads.s3.amazonaws.com/4310e6c0-ac6c-469f-b2e1-f06aa83d1e6e.png" width="200" alt="Mobile Notes View" style="border-radius: 8px;">
-    <img src="https://lovable-uploads.s3.amazonaws.com/f5a7a0ca-ca0e-4af9-b01e-afe8049c5896.png" width="200" alt="Mobile Projects View" style="border-radius: 8px;">
-    <img src="https://lovable-uploads.s3.amazonaws.com/6aab43f5-2199-4ba6-a00d-de1d892258d8.png" width="200" alt="Mobile Settings View" style="border-radius: 8px;">
+    <img src="README-pictures/Screenshot From 2025-05-17 16-49-09.png" width="200" alt="Mobile Galaxy View" style="border-radius: 8px;">
+    <img src="README-pictures/Screenshot From 2025-05-17 16-49-21.png" width="200" alt="Mobile Tasks View" style="border-radius: 8px;">
+    <img src="README-pictures/Screenshot From 2025-05-17 16-49-35.png" width="200" alt="Mobile Calendar View" style="border-radius: 8px;">
+    <img src="README-pictures/Screenshot From 2025-05-17 16-49-43.png" width="200" alt="Mobile Notes View" style="border-radius: 8px;">
+    <img src="README-pictures/Screenshot From 2025-05-17 16-49-57.png" width="200" alt="Mobile Projects View" style="border-radius: 8px;">
+    <img src="README-pictures/Screenshot From 2025-05-17 16-50-03.png" width="200" alt="Mobile Settings View" style="border-radius: 8px;">
   </div>
 </div>
 </details>
