@@ -179,8 +179,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Thank you
 
-1. 
-A big shout-out to GPT-Engineer and lovable.dev for their fantastic platforms that speed up AI development and help build lovable AI projects effortlessly. We sincerely thank them for helping me as a programmer to complete my tasks faster in such projects. (lovable.dev) 
+1. A big shout-out to GPT-Engineer and lovable.dev for their fantastic platforms that speed up AI development and help build lovable AI projects effortlessly. We sincerely thank them for helping me as a programmer to complete my tasks faster in such projects. (lovable.dev) 
 
 <div align="center">
   <br>
