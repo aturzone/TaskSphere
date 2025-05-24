@@ -1,5 +1,6 @@
 
 import { generateId } from '../utils';
+import { apiService } from '../services/apiService';
 
 export interface NoteProps {
   id?: string;
@@ -39,92 +40,94 @@ export class Note {
     this.updatedAt = props.updatedAt || new Date().toISOString();
   }
 
-  // Mock local storage implementation for demo
-  private static getStore(): Note[] {
-    const data = localStorage.getItem('notes');
-    return data ? JSON.parse(data) : [];
-  }
-
-  private static setStore(notes: Note[]): void {
-    localStorage.setItem('notes', JSON.stringify(notes));
-  }
-
+  // Server-based storage implementation
   static async create(noteData: NoteProps): Promise<Note> {
-    const note = new Note(noteData);
-    const notes = this.getStore();
-    notes.push(note);
-    this.setStore(notes);
-    return note;
+    try {
+      const result = await apiService.create('notes', noteData);
+      return new Note(result);
+    } catch (error) {
+      console.error('Failed to create note:', error);
+      throw error;
+    }
   }
 
   static async update(id: string, noteData: Partial<NoteProps>): Promise<Note | null> {
-    const notes = this.getStore();
-    const index = notes.findIndex(n => n.id === id);
-    
-    if (index === -1) return null;
-    
-    const updatedNote = {
-      ...notes[index],
-      ...noteData,
-      updatedAt: new Date().toISOString()
-    };
-    
-    notes[index] = updatedNote;
-    this.setStore(notes);
-    return new Note(updatedNote);
+    try {
+      const result = await apiService.update('notes', id, noteData);
+      return result ? new Note(result) : null;
+    } catch (error) {
+      console.error('Failed to update note:', error);
+      return null;
+    }
   }
 
   static async delete(id: string): Promise<boolean> {
-    const notes = this.getStore();
-    const filteredNotes = notes.filter(n => n.id !== id);
-    
-    if (filteredNotes.length === notes.length) {
+    try {
+      const result = await apiService.delete('notes', id);
+      return result.success || false;
+    } catch (error) {
+      console.error('Failed to delete note:', error);
       return false;
     }
-    
-    this.setStore(filteredNotes);
-    return true;
   }
 
   static async findById(id: string): Promise<Note | null> {
-    const notes = this.getStore();
-    const note = notes.find(n => n.id === id);
-    return note ? new Note(note) : null;
+    try {
+      const result = await apiService.getById('notes', id);
+      return result ? new Note(result) : null;
+    } catch (error) {
+      console.error('Failed to find note by id:', error);
+      return null;
+    }
   }
 
   static async filter(filters: Partial<NoteProps>): Promise<Note[]> {
-    const notes = this.getStore();
-    return notes.filter(note => {
-      for (const [key, value] of Object.entries(filters)) {
-        if (note[key as keyof Note] !== value) {
-          return false;
+    try {
+      const notes = await apiService.getAll('notes');
+      return notes.filter((note: any) => {
+        for (const [key, value] of Object.entries(filters)) {
+          if (note[key as keyof Note] !== value) {
+            return false;
+          }
         }
-      }
-      return true;
-    }).map(n => new Note(n));
+        return true;
+      }).map((n: any) => new Note(n));
+    } catch (error) {
+      console.error('Failed to filter notes:', error);
+      return [];
+    }
   }
 
   static async getAll(): Promise<Note[]> {
-    const notes = this.getStore();
-    return notes.map(n => new Note(n));
+    try {
+      const notes = await apiService.getAll('notes');
+      return notes.map((n: any) => new Note(n));
+    } catch (error) {
+      console.error('Failed to get all notes:', error);
+      return [];
+    }
   }
 
   static async list(sortOrder?: string): Promise<Note[]> {
-    const notes = this.getStore();
-    let sortedNotes = [...notes];
-    
-    if (sortOrder) {
-      const [field, direction] = sortOrder.split(':');
-      sortedNotes.sort((a, b) => {
-        if (direction === 'asc') {
-          return a[field as keyof Note] > b[field as keyof Note] ? 1 : -1;
-        } else {
-          return a[field as keyof Note] < b[field as keyof Note] ? 1 : -1;
-        }
-      });
+    try {
+      let notes = await apiService.getAll('notes');
+      
+      if (sortOrder) {
+        const [field, direction] = sortOrder.split(':');
+        notes.sort((a: any, b: any) => {
+          if (direction === 'asc') {
+            return a[field] > b[field] ? 1 : -1;
+          } else {
+            return a[field] < b[field] ? 1 : -1;
+          }
+        });
+      }
+      
+      return notes.map((n: any) => new Note(n));
+    } catch (error) {
+      console.error('Failed to list notes:', error);
+      return [];
     }
-    
-    return sortedNotes.map(n => new Note(n));
   }
 
   static async get(id: string): Promise<Note | null> {

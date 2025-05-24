@@ -1,8 +1,14 @@
+import { apiService } from './apiService';
 
-import { Project } from '@/entities/Project';
-import { Task } from '@/entities/Task';
-import { Note } from '@/entities/Note';
-import { ProjectStep } from '@/entities/ProjectStep';
+export interface BackupData {
+  projects: any[];
+  tasks: any[];
+  notes: any[];
+  'project-steps': any[];
+  connections: any[];
+  timestamp: string;
+  version: string;
+}
 
 export interface BackupOptions {
   includeProjects: boolean;
@@ -12,314 +18,335 @@ export interface BackupOptions {
   includeProjectSteps: boolean;
 }
 
-interface BackupData {
-  version: number;
-  timestamp: string;
-  options: BackupOptions;
-  data: {
-    projects?: any[];
-    tasks?: any[];
-    notes?: any[];
-    connections?: any[];
-    projectSteps?: any[];
-  };
+class BackupRestoreService {
+  async exportDataAsZip(options?: BackupOptions): Promise<{ filename: string; data: string; info: any }> {
+    try {
+      console.log('Creating ZIP backup with options:', options);
+      
+      const response = await fetch('/api/backup/export-zip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ options: options || {} })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create backup');
+      }
+      
+      return {
+        filename: result.filename,
+        data: result.data,
+        info: result.info
+      };
+    } catch (error) {
+      console.error('Export ZIP failed:', error);
+      throw new Error('Failed to export data as ZIP');
+    }
+  }
+
+  async importDataFromZip(zipBase64Data: string, options?: BackupOptions): Promise<boolean> {
+    try {
+      console.log('Importing ZIP backup with options:', options);
+      
+      const response = await fetch('/api/backup/import-zip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          zipData: zipBase64Data,
+          options: options || {} 
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to restore backup');
+      }
+      
+      console.log('Successfully restored files:', result.restored_files);
+      return true;
+    } catch (error) {
+      console.error('Import ZIP failed:', error);
+      throw new Error('Failed to import data from ZIP');
+    }
+  }
+
+  async exportData(options?: BackupOptions): Promise<BackupData> {
+    try {
+      const data = await apiService.exportData();
+      
+      // Filter data based on options if provided
+      if (options) {
+        const filteredData: any = {
+          timestamp: new Date().toISOString(),
+          version: '1.0.0'
+        };
+        
+        if (options.includeProjects) filteredData.projects = data.projects || [];
+        else filteredData.projects = [];
+        
+        if (options.includeTasks) filteredData.tasks = data.tasks || [];
+        else filteredData.tasks = [];
+        
+        if (options.includeNotes) filteredData.notes = data.notes || [];
+        else filteredData.notes = [];
+        
+        if (options.includeProjectSteps) filteredData['project-steps'] = data['project-steps'] || [];
+        else filteredData['project-steps'] = [];
+        
+        if (options.includeConnections) {
+          const connections = localStorage.getItem('graph-connections');
+          filteredData.connections = connections ? JSON.parse(connections) : [];
+        } else {
+          filteredData.connections = [];
+        }
+        
+        return filteredData;
+      }
+      
+      // Include connections from localStorage
+      const connections = localStorage.getItem('graph-connections');
+      return {
+        ...data,
+        connections: connections ? JSON.parse(connections) : [],
+        timestamp: new Date().toISOString(),
+        version: '1.0.0'
+      };
+    } catch (error) {
+      console.error('Export failed:', error);
+      throw new Error('Failed to export data');
+    }
+  }
+
+  async importData(backupData: BackupData, options?: BackupOptions): Promise<boolean> {
+    try {
+      // Prepare data to import based on options
+      const dataToImport: any = {};
+      
+      if (!options || options.includeProjects) {
+        dataToImport.projects = backupData.projects || [];
+      }
+      
+      if (!options || options.includeTasks) {
+        dataToImport.tasks = backupData.tasks || [];
+      }
+      
+      if (!options || options.includeNotes) {
+        dataToImport.notes = backupData.notes || [];
+      }
+      
+      if (!options || options.includeProjectSteps) {
+        dataToImport['project-steps'] = backupData['project-steps'] || [];
+      }
+      
+      const result = await apiService.importData(dataToImport);
+      
+      // Import connections to localStorage if included
+      if ((!options || options.includeConnections) && backupData.connections) {
+        localStorage.setItem('graph-connections', JSON.stringify(backupData.connections));
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Import failed:', error);
+      throw new Error('Failed to import data');
+    }
+  }
+
+  async clearAllData(): Promise<boolean> {
+    try {
+      const result = await apiService.clearAllData();
+      // Also clear graph connections
+      localStorage.removeItem('graph-connections');
+      return result.success || false;
+    } catch (error) {
+      console.error('Clear data failed:', error);
+      throw new Error('Failed to clear all data');
+    }
+  }
+
+  downloadBackup(data: BackupData, filename?: string): void {
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename || `tasksphere-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    URL.revokeObjectURL(url);
+  }
+
+  uploadBackup(): Promise<BackupData> {
+    return new Promise((resolve, reject) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      
+      input.onchange = (event) => {
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (!file) {
+          reject(new Error('No file selected'));
+          return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target?.result as string);
+            resolve(data);
+          } catch (error) {
+            reject(new Error('Invalid JSON file'));
+          }
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsText(file);
+      };
+      
+      input.click();
+    });
+  }
+
+  downloadBackupZip(filename: string, zipBase64Data: string): void {
+    try {
+      // Convert base64 to blob
+      const byteCharacters = atob(zipBase64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/zip' });
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+      throw new Error('Failed to download backup file');
+    }
+  }
+
+  uploadBackupZip(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.zip';
+      
+      input.onchange = (event) => {
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (!file) {
+          reject(new Error('No file selected'));
+          return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const arrayBuffer = e.target?.result as ArrayBuffer;
+            const bytes = new Uint8Array(arrayBuffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            const base64 = btoa(binary);
+            resolve(base64);
+          } catch (error) {
+            reject(new Error('Failed to process ZIP file'));
+          }
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsArrayBuffer(file);
+      };
+      
+      input.click();
+    });
+  }
+
+  async checkServerConnection(): Promise<boolean> {
+    try {
+      await apiService.healthCheck();
+      return true;
+    } catch (error) {
+      console.error('Server connection failed:', error);
+      return false;
+    }
+  }
 }
 
-const BACKUP_VERSION = 1;
-const CONNECTIONS_KEY = 'graph-connections';
+export const backupRestoreService = new BackupRestoreService();
 
-// Helper to strip system-generated fields before re-inserting
-const stripSystemFields = (entity: any) => {
-  const { id, createdAt, creatorId, ...rest } = entity;
-  return rest;
+// Export functions for ZIP backup
+export const exportDataAsZip = async (options: BackupOptions): Promise<{ filename: string; data: string; info: any }> => {
+  console.log('Export ZIP options:', options);
+  return await backupRestoreService.exportDataAsZip(options);
 };
 
-export const exportData = async (options: BackupOptions): Promise<string> => {
-  let projects: any[] = [];
-  let tasks: any[] = [];
-  let notes: any[] = [];
-  let connections: any[] = [];
-  let projectSteps: any[] = [];
-  
-  if (options.includeProjects) {
-    projects = await Project.list();
-  }
-  
-  if (options.includeTasks) {
-    tasks = await Task.list();
-  }
-  
-  if (options.includeNotes) {
-    notes = await Note.list();
-  }
-
-  if (options.includeConnections) {
-    // Retrieve graph connections from localStorage
-    const connectionsData = localStorage.getItem(CONNECTIONS_KEY);
-    if (connectionsData) {
-      try {
-        connections = JSON.parse(connectionsData);
-        console.log("Exported graph connections:", connections.length);
-      } catch (error) {
-        console.error("Error parsing connections data:", error);
-        connections = [];
-      }
-    }
-  }
-
-  if (options.includeProjectSteps) {
-    projectSteps = await ProjectStep.getAll();
-    console.log("Exported project steps:", projectSteps.length);
-  }
-
-  const backupData: BackupData = {
-    version: BACKUP_VERSION,
-    timestamp: new Date().toISOString(),
-    options,
-    data: {
-      ...(options.includeProjects && { projects }),
-      ...(options.includeTasks && { tasks }),
-      ...(options.includeNotes && { notes }),
-      ...(options.includeConnections && { connections }),
-      ...(options.includeProjectSteps && { projectSteps }),
-    },
-  };
-
-  return JSON.stringify(backupData, null, 2);
-};
-
-export const importData = async (
-  jsonData: string, 
-  options: BackupOptions
-): Promise<{ success: boolean; message: string; errors?: any[] }> => {
+export const importDataFromZip = async (zipBase64Data: string, options: BackupOptions): Promise<{ success: boolean; message: string }> => {
   try {
-    const backupData: BackupData = JSON.parse(jsonData);
-
-    if (backupData.version !== BACKUP_VERSION) {
-      return { success: false, message: `Unsupported backup version. Expected ${BACKUP_VERSION}, got ${backupData.version}.` };
-    }
-
-    const errors: any[] = [];
-    const oldIdToNewIdMap: Record<string, string> = {};
-
-    // Clear and import Projects if selected
-    if (options.includeProjects && backupData.data.projects) {
-      // Clear existing projects
-      const existingProjects = await Project.list();
-      for (const p of existingProjects) { await Project.delete(p.id); }
-      
-      // Import projects from backup
-      for (const project of backupData.data.projects) {
-        try {
-          const newProject = await Project.create(stripSystemFields(project));
-          if (project.id) oldIdToNewIdMap[`project-${project.id}`] = newProject.id;
-        } catch (e) {
-          errors.push({ type: 'project', originalId: project.id, error: (e as Error).message });
-        }
-      }
-    }
-
-    // Clear and import Project Steps if selected
-    if (options.includeProjectSteps && backupData.data.projectSteps) {
-      // Clear existing project steps
-      const existingSteps = await ProjectStep.getAll();
-      for (const step of existingSteps) { await ProjectStep.delete(step.id); }
-      
-      // Import project steps from backup
-      for (const step of backupData.data.projectSteps) {
-        try {
-          const stepData = stripSystemFields(step);
-          
-          if (step.projectId) {
-            if (oldIdToNewIdMap[`project-${step.projectId}`]) {
-              stepData.projectId = oldIdToNewIdMap[`project-${step.projectId}`];
-            } else if (options.includeProjects) {
-              stepData.projectId = undefined;
-            }
-          }
-          
-          const newStep = await ProjectStep.create(stepData);
-          if (step.id) oldIdToNewIdMap[`projectStep-${step.id}`] = newStep.id;
-        } catch (e) {
-          errors.push({ type: 'projectStep', originalId: step.id, error: (e as Error).message });
-        }
-      }
-    }
-
-    // Clear and import Tasks if selected
-    if (options.includeTasks && backupData.data.tasks) {
-      // Clear existing tasks
-      const existingTasks = await Task.list();
-      for (const t of existingTasks) { await Task.delete(t.id); }
-      
-      // Import tasks from backup - handle possible dependencies
-      const tasksToProcess = [...backupData.data.tasks];
-      let processedTasksThisPass = -1;
-      let remainingTasks = tasksToProcess.length;
-
-      while (remainingTasks > 0 && processedTasksThisPass !== 0) {
-        processedTasksThisPass = 0;
-        const stillToProcess: any[] = [];
-
-        for (const task of tasksToProcess) {
-          let canProcess = true;
-          const taskData = stripSystemFields(task);
-
-          if (task.projectId) {
-            if (oldIdToNewIdMap[`project-${task.projectId}`]) {
-              taskData.projectId = oldIdToNewIdMap[`project-${task.projectId}`];
-            } else if (options.includeProjects) {
-              // Project might not exist or failed to import
-              taskData.projectId = undefined; 
-            }
-          }
-
-          if (task.parentId) {
-            if (oldIdToNewIdMap[`task-${task.parentId}`]) {
-              taskData.parentId = oldIdToNewIdMap[`task-${task.parentId}`];
-            } else {
-              // Parent task not yet processed or doesn't exist
-              canProcess = false; 
-            }
-          }
-          
-          if (canProcess) {
-            try {
-              const newTask = await Task.create(taskData);
-              if (task.id) oldIdToNewIdMap[`task-${task.id}`] = newTask.id;
-              processedTasksThisPass++;
-            } catch (e) {
-              errors.push({ type: 'task', originalId: task.id, error: (e as Error).message });
-            }
-          } else {
-            stillToProcess.push(task);
-          }
-        }
-        
-        tasksToProcess.length = 0; // Clear array
-        tasksToProcess.push(...stillToProcess); // Repopulate with unprocessed tasks
-        remainingTasks = tasksToProcess.length;
-
-        if (processedTasksThisPass === 0 && remainingTasks > 0) {
-          // Circular dependency or missing parent, mark remaining as errors
-          tasksToProcess.forEach(task => errors.push({ 
-            type: 'task', 
-            originalId: task.id, 
-            error: 'Could not process due to missing/circular parent or other dependency.' 
-          }));
-          break;
-        }
-      }
-    }
-
-    // Clear and import Notes if selected
-    if (options.includeNotes && backupData.data.notes) {
-      // Clear existing notes
-      const existingNotes = await Note.list();
-      for (const n of existingNotes) { await Note.delete(n.id); }
-      
-      // Import notes from backup
-      for (const note of backupData.data.notes) {
-        try {
-          const noteData = stripSystemFields(note);
-          
-          if (note.projectId) {
-            if (oldIdToNewIdMap[`project-${note.projectId}`]) {
-              noteData.projectId = oldIdToNewIdMap[`project-${note.projectId}`];
-            } else if (options.includeProjects) {
-              noteData.projectId = undefined;
-            }
-          }
-
-          if (note.linkedTaskIds && Array.isArray(note.linkedTaskIds)) {
-            noteData.linkedTaskIds = note.linkedTaskIds
-              .map((oldTaskId: string) => oldIdToNewIdMap[`task-${oldTaskId}`])
-              .filter((newTaskId: string | undefined) => newTaskId !== undefined); // Filter out unresolved links
-          } else {
-            noteData.linkedTaskIds = [];
-          }
-          
-          const newNote = await Note.create(noteData);
-          if (note.id) oldIdToNewIdMap[`note-${note.id}`] = newNote.id;
-        } catch (e) {
-          errors.push({ type: 'note', originalId: note.id, error: (e as Error).message });
-        }
-      }
-    }
-
-    // Import graph connections if selected
-    if (options.includeConnections && backupData.data.connections) {
-      try {
-        // First update both IndexedDB and localStorage
-        localStorage.setItem(CONNECTIONS_KEY, JSON.stringify(backupData.data.connections));
-        
-        // Also attempt to update IndexedDB if available
-        if (window.indexedDB) {
-          const request = indexedDB.open('KnowledgeGalaxyDB', 1);
-          
-          request.onsuccess = (event) => {
-            try {
-              const db = request.result;
-              const tx = db.transaction('connections', 'readwrite');
-              const store = tx.objectStore('connections');
-
-              // Clear existing data first
-              store.clear();
-              
-              // Add all connections from backup
-              backupData.data.connections.forEach((conn: any) => {
-                store.add(conn);
-              });
-              
-              console.log("Successfully updated IndexedDB with imported connections:", backupData.data.connections.length);
-            } catch (dbError) {
-              console.error("Error updating IndexedDB during import:", dbError);
-            }
-          };
-          
-          request.onerror = () => {
-            console.error("IndexedDB error during connection import:", request.error);
-          };
-        }
-        
-        console.log("Successfully imported graph connections:", backupData.data.connections.length);
-      } catch (e) {
-        errors.push({ 
-          type: 'connections', 
-          error: `Failed to save graph connections: ${(e as Error).message}` 
-        });
-      }
-    }
-
-    if (errors.length > 0) {
-      return { 
-        success: true, 
-        message: `Import completed with ${errors.length} warning(s). Some items might be missing or incomplete.`, 
-        errors 
-      };
-    }
-
-    return { success: true, message: 'Data imported successfully.' };
-
+    console.log('Import ZIP options:', options);
+    const result = await backupRestoreService.importDataFromZip(zipBase64Data, options);
+    return {
+      success: result,
+      message: result ? 'Data imported successfully from ZIP' : 'Import failed'
+    };
   } catch (error) {
-    console.error("Error during import:", error);
-    return { success: false, message: `Import failed: ${(error as Error).message}` };
+    return {
+      success: false,
+      message: 'Failed to import data: ' + (error instanceof Error ? error.message : 'Unknown error')
+    };
   }
 };
 
-// Helper function to download backup file
-export const downloadBackupFile = (data: string): void => {
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `taskflow-backup-${new Date().toISOString().slice(0, 10)}.json`;
-  document.body.appendChild(a);
-  a.click();
-  
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 0);
+export const downloadBackupZip = (filename: string, zipBase64Data: string): void => {
+  backupRestoreService.downloadBackupZip(filename, zipBase64Data);
+};
+
+// Export standalone functions that AppSettings.tsx expects
+export const exportData = async (options: BackupOptions): Promise<BackupData> => {
+  console.log('Export options:', options);
+  return await backupRestoreService.exportData(options);
+};
+
+export const importData = async (content: string, options: BackupOptions): Promise<{ success: boolean; message: string }> => {
+  try {
+    console.log('Import options:', options);
+    const data = JSON.parse(content);
+    const result = await backupRestoreService.importData(data, options);
+    return {
+      success: result,
+      message: result ? 'Data imported successfully' : 'Import failed'
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: 'Failed to import data: ' + (error instanceof Error ? error.message : 'Unknown error')
+    };
+  }
+};
+
+export const downloadBackupFile = (data: BackupData, filename?: string): void => {
+  backupRestoreService.downloadBackup(data, filename);
 };

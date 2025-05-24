@@ -1,6 +1,6 @@
-
 import { generateId } from '../utils';
 import { ProjectStep, ProjectStepProps } from './ProjectStep';
+import { apiService } from '../services/apiService';
 
 export interface ProjectProps {
   id?: string;
@@ -70,93 +70,94 @@ export class Project {
     return totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0;
   }
 
-  // Mock local storage implementation for demo
-  private static getStore(): Project[] {
-    const data = localStorage.getItem('projects');
-    return data ? JSON.parse(data) : [];
-  }
-
-  private static setStore(projects: Project[]): void {
-    localStorage.setItem('projects', JSON.stringify(projects));
-  }
-
+  // Server-based storage implementation
   static async create(projectData: ProjectProps): Promise<Project> {
-    const project = new Project(projectData);
-    const projects = this.getStore();
-    projects.push(project);
-    this.setStore(projects);
-    return project;
+    try {
+      const result = await apiService.create('projects', projectData);
+      return new Project(result);
+    } catch (error) {
+      console.error('Failed to create project:', error);
+      throw error;
+    }
   }
 
   static async update(id: string, projectData: Partial<ProjectProps>): Promise<Project | null> {
-    const projects = this.getStore();
-    const index = projects.findIndex(p => p.id === id);
-    
-    if (index === -1) return null;
-    
-    // Create a new project instance to ensure the getRandomColor method is available
-    const updatedProject = new Project({
-      ...projects[index],
-      ...projectData,
-      updatedAt: new Date().toISOString()
-    });
-    
-    projects[index] = updatedProject;
-    this.setStore(projects);
-    return updatedProject;
+    try {
+      const result = await apiService.update('projects', id, projectData);
+      return result ? new Project(result) : null;
+    } catch (error) {
+      console.error('Failed to update project:', error);
+      return null;
+    }
   }
 
   static async delete(id: string): Promise<boolean> {
-    const projects = this.getStore();
-    const filteredProjects = projects.filter(p => p.id !== id);
-    
-    if (filteredProjects.length === projects.length) {
+    try {
+      const result = await apiService.delete('projects', id);
+      return result.success || false;
+    } catch (error) {
+      console.error('Failed to delete project:', error);
       return false;
     }
-    
-    this.setStore(filteredProjects);
-    return true;
   }
 
   static async findById(id: string): Promise<Project | null> {
-    const projects = this.getStore();
-    const project = projects.find(p => p.id === id);
-    return project ? new Project(project) : null;
+    try {
+      const result = await apiService.getById('projects', id);
+      return result ? new Project(result) : null;
+    } catch (error) {
+      console.error('Failed to find project by id:', error);
+      return null;
+    }
   }
 
   static async filter(filters: Partial<ProjectProps>): Promise<Project[]> {
-    const projects = this.getStore();
-    return projects.filter(project => {
-      for (const [key, value] of Object.entries(filters)) {
-        if (project[key as keyof Project] !== value) {
-          return false;
+    try {
+      const projects = await apiService.getAll('projects');
+      return projects.filter((project: any) => {
+        for (const [key, value] of Object.entries(filters)) {
+          if (project[key as keyof Project] !== value) {
+            return false;
+          }
         }
-      }
-      return true;
-    }).map(p => new Project(p));
+        return true;
+      }).map((p: any) => new Project(p));
+    } catch (error) {
+      console.error('Failed to filter projects:', error);
+      return [];
+    }
   }
 
   static async getAll(): Promise<Project[]> {
-    const projects = this.getStore();
-    return projects.map(p => new Project(p));
+    try {
+      const projects = await apiService.getAll('projects');
+      return projects.map((p: any) => new Project(p));
+    } catch (error) {
+      console.error('Failed to get all projects:', error);
+      return [];
+    }
   }
 
   static async list(sortOrder?: string): Promise<Project[]> {
-    const projects = this.getStore();
-    let sortedProjects = [...projects];
-    
-    if (sortOrder) {
-      const [field, direction] = sortOrder.split(':');
-      sortedProjects.sort((a, b) => {
-        if (direction === 'asc') {
-          return a[field as keyof Project] > b[field as keyof Project] ? 1 : -1;
-        } else {
-          return a[field as keyof Project] < b[field as keyof Project] ? 1 : -1;
-        }
-      });
+    try {
+      let projects = await apiService.getAll('projects');
+      
+      if (sortOrder) {
+        const [field, direction] = sortOrder.split(':');
+        projects.sort((a: any, b: any) => {
+          if (direction === 'asc') {
+            return a[field] > b[field] ? 1 : -1;
+          } else {
+            return a[field] < b[field] ? 1 : -1;
+          }
+        });
+      }
+      
+      return projects.map((p: any) => new Project(p));
+    } catch (error) {
+      console.error('Failed to list projects:', error);
+      return [];
     }
-    
-    return sortedProjects.map(p => new Project(p));
   }
 
   static async get(id: string): Promise<Project | null> {

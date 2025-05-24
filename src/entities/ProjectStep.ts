@@ -1,5 +1,6 @@
 
 import { generateId } from '../utils';
+import { apiService } from '../services/apiService';
 
 export interface ProjectStepProps {
   id?: string;
@@ -33,81 +34,79 @@ export class ProjectStep {
     this.updatedAt = props.updatedAt || new Date().toISOString();
   }
 
-  // Mock local storage implementation for demo
-  private static getStore(): ProjectStep[] {
-    const data = localStorage.getItem('project-steps');
-    return data ? JSON.parse(data) : [];
-  }
-
-  private static setStore(steps: ProjectStep[]): void {
-    localStorage.setItem('project-steps', JSON.stringify(steps));
-  }
-
+  // Server-based storage implementation
   static async create(stepData: ProjectStepProps): Promise<ProjectStep> {
-    const step = new ProjectStep(stepData);
-    const steps = this.getStore();
-    steps.push(step);
-    this.setStore(steps);
-    return step;
+    try {
+      const result = await apiService.create('project-steps', stepData);
+      return new ProjectStep(result);
+    } catch (error) {
+      console.error('Failed to create project step:', error);
+      throw error;
+    }
   }
 
   static async update(id: string, stepData: Partial<ProjectStepProps>): Promise<ProjectStep | null> {
-    const steps = this.getStore();
-    const index = steps.findIndex(s => s.id === id);
-    
-    if (index === -1) return null;
-    
-    // Create a new step instance to ensure methods are available
-    const updatedStep = new ProjectStep({
-      ...steps[index],
-      ...stepData,
-      updatedAt: new Date().toISOString()
-    });
-    
-    steps[index] = updatedStep;
-    this.setStore(steps);
-    return updatedStep;
+    try {
+      const result = await apiService.update('project-steps', id, stepData);
+      return result ? new ProjectStep(result) : null;
+    } catch (error) {
+      console.error('Failed to update project step:', error);
+      return null;
+    }
   }
 
   static async delete(id: string): Promise<boolean> {
-    const steps = this.getStore();
-    const filteredSteps = steps.filter(s => s.id !== id);
-    
-    if (filteredSteps.length === steps.length) {
+    try {
+      const result = await apiService.delete('project-steps', id);
+      return result.success || false;
+    } catch (error) {
+      console.error('Failed to delete project step:', error);
       return false;
     }
-    
-    this.setStore(filteredSteps);
-    return true;
   }
 
   static async deleteByProjectId(projectId: string): Promise<boolean> {
-    const steps = this.getStore();
-    const filteredSteps = steps.filter(s => s.projectId !== projectId);
-    
-    if (filteredSteps.length === steps.length) {
+    try {
+      const steps = await this.getByProjectId(projectId);
+      for (const step of steps) {
+        await this.delete(step.id);
+      }
+      return true;
+    } catch (error) {
+      console.error('Failed to delete project steps:', error);
       return false;
     }
-    
-    this.setStore(filteredSteps);
-    return true;
   }
 
   static async findById(id: string): Promise<ProjectStep | null> {
-    const steps = this.getStore();
-    const step = steps.find(s => s.id === id);
-    return step ? new ProjectStep(step) : null;
+    try {
+      const result = await apiService.getById('project-steps', id);
+      return result ? new ProjectStep(result) : null;
+    } catch (error) {
+      console.error('Failed to find project step by id:', error);
+      return null;
+    }
   }
 
   static async getByProjectId(projectId: string): Promise<ProjectStep[]> {
-    const steps = this.getStore();
-    return steps
-      .filter(step => step.projectId === projectId)
-      .map(s => new ProjectStep(s));
+    try {
+      const steps = await apiService.getAll('project-steps');
+      return steps
+        .filter((step: any) => step.projectId === projectId)
+        .map((s: any) => new ProjectStep(s));
+    } catch (error) {
+      console.error('Failed to get project steps:', error);
+      return [];
+    }
   }
 
   static async getAll(): Promise<ProjectStep[]> {
-    const steps = this.getStore();
-    return steps.map(s => new ProjectStep(s));
+    try {
+      const steps = await apiService.getAll('project-steps');
+      return steps.map((s: any) => new ProjectStep(s));
+    } catch (error) {
+      console.error('Failed to get all project steps:', error);
+      return [];
+    }
   }
 }

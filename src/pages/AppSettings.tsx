@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Download, Upload, Trash2, AlertCircle } from 'lucide-react';
+import { Settings, Download, Upload, Trash2, AlertCircle, Server } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
@@ -15,11 +15,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { exportData, importData, downloadBackupFile, BackupOptions } from '@/services/backupRestoreService';
-import { Project } from '@/entities/Project';
-import { Task } from '@/entities/Task';
-import { Note } from '@/entities/Note';
-import { ProjectStep } from '@/entities/ProjectStep';
+import { exportData, importData, downloadBackupFile, BackupOptions, backupRestoreService } from '@/services/backupRestoreService';
+import { exportDataAsZip, importDataFromZip, downloadBackupZip } from '@/services/backupRestoreService';
 import SelectBackupDialog from '@/components/SelectBackupDialog';
 
 const AppSettings = () => {
@@ -33,22 +30,36 @@ const AppSettings = () => {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [serverStatus, setServerStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+
+  React.useEffect(() => {
+    checkServerStatus();
+  }, []);
+
+  const checkServerStatus = async () => {
+    try {
+      const isConnected = await backupRestoreService.checkServerConnection();
+      setServerStatus(isConnected ? 'connected' : 'disconnected');
+    } catch (error) {
+      setServerStatus('disconnected');
+    }
+  };
 
   const handleExport = async (options: BackupOptions) => {
     setLoading({ ...loading, export: true });
     try {
-      const data = await exportData(options);
-      downloadBackupFile(data);
+      const result = await exportDataAsZip(options);
+      downloadBackupZip(result.filename, result.data);
       toast({
-        title: "Backup Created",
-        description: "Your data has been backed up successfully.",
+        title: "ZIP Backup Created",
+        description: `Your data has been backed up as ${result.filename}.`,
       });
     } catch (error) {
       console.error("Export error:", error);
       toast({
         variant: "destructive",
         title: "Export Failed",
-        description: "There was a problem creating your backup.",
+        description: "There was a problem creating your ZIP backup. Make sure the server is running.",
       });
     } finally {
       setLoading({ ...loading, export: false });
@@ -56,71 +67,49 @@ const AppSettings = () => {
     }
   };
 
-  const handleImportClick = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        setImportFile(file);
-        setShowImportDialog(true);
-      }
-    };
-    
-    input.click();
+  const handleImportClick = async () => {
+    try {
+      const zipBase64Data = await backupRestoreService.uploadBackupZip();
+      setImportFile({ name: 'backup.zip', data: zipBase64Data } as any);
+      setShowImportDialog(true);
+    } catch (error) {
+      console.error("File selection error:", error);
+      toast({
+        variant: "destructive",
+        title: "File Selection Failed",
+        description: "There was a problem selecting your backup file.",
+      });
+    }
   };
 
   const handleImport = async (options: BackupOptions) => {
-    if (!importFile) return;
+    if (!importFile || !(importFile as any).data) return;
     
     setLoading({ ...loading, import: true });
     
     try {
-      const reader = new FileReader();
+      const result = await importDataFromZip((importFile as any).data, options);
       
-      reader.onload = async (e) => {
-        const content = e.target?.result as string;
-        
-        try {
-          const result = await importData(content, options);
-          
-          if (result.success) {
-            toast({
-              title: "Import Successful",
-              description: result.message,
-            });
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Import Failed",
-              description: result.message,
-            });
-          }
-        } catch (error) {
-          console.error("Import processing error:", error);
-          toast({
-            variant: "destructive",
-            title: "Import Failed",
-            description: "There was a problem processing your backup file.",
-          });
-        } finally {
-          setLoading({ ...loading, import: false });
-          setShowImportDialog(false);
-          setImportFile(null);
-        }
-      };
-      
-      reader.readAsText(importFile);
-      
+      if (result.success) {
+        toast({
+          title: "ZIP Import Successful",
+          description: result.message,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Import Failed",
+          description: result.message,
+        });
+      }
     } catch (error) {
-      console.error("File reading error:", error);
+      console.error("Import processing error:", error);
       toast({
         variant: "destructive",
         title: "Import Failed",
-        description: "There was a problem reading your backup file.",
+        description: "There was a problem processing your ZIP backup file.",
       });
+    } finally {
       setLoading({ ...loading, import: false });
       setShowImportDialog(false);
       setImportFile(null);
@@ -131,20 +120,7 @@ const AppSettings = () => {
     setLoading({ ...loading, clearData: true });
     
     try {
-      // Get all data
-      const projects = await Project.list();
-      const tasks = await Task.list();
-      const notes = await Note.list();
-      const projectSteps = await ProjectStep.getAll();
-      
-      // Delete all data
-      for (const project of projects) { await Project.delete(project.id); }
-      for (const task of tasks) { await Task.delete(task.id); }
-      for (const note of notes) { await Note.delete(note.id); }
-      for (const step of projectSteps) { await ProjectStep.delete(step.id); }
-      
-      // Clear graph connections
-      localStorage.removeItem('graph-connections');
+      await backupRestoreService.clearAllData();
       
       toast({
         title: "Data Cleared",
@@ -155,7 +131,7 @@ const AppSettings = () => {
       toast({
         variant: "destructive",
         title: "Operation Failed",
-        description: "There was a problem clearing your data.",
+        description: "There was a problem clearing your data. Make sure the server is running.",
       });
     } finally {
       setLoading({ ...loading, clearData: false });
@@ -163,11 +139,44 @@ const AppSettings = () => {
     }
   };
 
+  const getServerStatusColor = () => {
+    switch (serverStatus) {
+      case 'connected': return 'text-green-500';
+      case 'disconnected': return 'text-red-500';
+      default: return 'text-yellow-500';
+    }
+  };
+
+  const getServerStatusText = () => {
+    switch (serverStatus) {
+      case 'connected': return 'Server Connected';
+      case 'disconnected': return 'Server Disconnected';
+      default: return 'Checking Server...';
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="flex items-center mb-6">
-        <Settings className="mr-3 h-8 w-8 text-primary" />
-        <h1 className="text-3xl font-bold">Settings</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Settings className="mr-3 h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-bold">Settings</h1>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Server className={`h-5 w-5 ${getServerStatusColor()}`} />
+          <span className={`text-sm font-medium ${getServerStatusColor()}`}>
+            {getServerStatusText()}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={checkServerStatus}
+            disabled={serverStatus === 'checking'}
+          >
+            Refresh
+          </Button>
+        </div>
       </div>
       
       <Tabs defaultValue="general" className="w-full">
@@ -179,12 +188,20 @@ const AppSettings = () => {
         <TabsContent value="general">
           <Card>
             <CardHeader>
-              <CardTitle>Appearance</CardTitle>
-              <CardDescription>Customize how the application looks.</CardDescription>
+              <CardTitle>Application Settings</CardTitle>
+              <CardDescription>General application preferences and configurations.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Additional settings can go here in the future */}
-              <p className="text-muted-foreground">No appearance settings available in this version.</p>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-medium mb-2">Data Storage</h3>
+                <p className="text-sm text-muted-foreground mb-2">
+                  All data is stored securely on the server in the Data folder within the application directory.
+                </p>
+                <div className="flex items-center gap-2 text-sm">
+                  <div className={`w-2 h-2 rounded-full ${serverStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span>Storage Location: server/Data/</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -193,17 +210,29 @@ const AppSettings = () => {
           <Card>
             <CardHeader>
               <CardTitle>Backup & Restore</CardTitle>
-              <CardDescription>Export or import your application data.</CardDescription>
+              <CardDescription>Export or import your application data from the server storage.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {serverStatus === 'disconnected' && (
+                <div className="p-4 border border-destructive/50 rounded-lg bg-destructive/10">
+                  <div className="flex items-center gap-2 text-destructive mb-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="font-medium">Server Not Connected</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    The server is not running. Please start the server with: <code>cd server && npm start</code>
+                  </p>
+                </div>
+              )}
+              
               <div>
                 <h3 className="text-lg font-medium mb-2">Backup Data</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Create a backup file containing your projects, tasks, and notes.
+                  Create a backup file containing your projects, tasks, notes, and other data from the server.
                 </p>
                 <Button 
                   onClick={() => setShowExportDialog(true)} 
-                  disabled={loading.export}
+                  disabled={loading.export || serverStatus === 'disconnected'}
                   className="flex items-center"
                 >
                   {loading.export ? (
@@ -221,11 +250,11 @@ const AppSettings = () => {
               <div>
                 <h3 className="text-lg font-medium mb-2">Restore Data</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Import data from a previously created backup file.
+                  Import data from a previously created backup file to the server storage.
                 </p>
                 <Button 
                   onClick={handleImportClick} 
-                  disabled={loading.import}
+                  disabled={loading.import || serverStatus === 'disconnected'}
                   className="flex items-center"
                 >
                   {loading.import ? (
@@ -245,12 +274,12 @@ const AppSettings = () => {
                   <AlertCircle className="mr-2 h-5 w-5" /> Danger Zone
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Clear all application data. This action cannot be undone.
+                  Clear all application data from the server storage. This action cannot be undone.
                 </p>
                 <Button 
                   variant="destructive" 
                   onClick={() => setShowConfirmClear(true)}
-                  disabled={loading.clearData}
+                  disabled={loading.clearData || serverStatus === 'disconnected'}
                   className="flex items-center"
                 >
                   {loading.clearData ? (
@@ -272,7 +301,7 @@ const AppSettings = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete all your projects, tasks, and notes.
+              This will permanently delete all your projects, tasks, notes, and project steps from the server storage.
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

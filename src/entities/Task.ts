@@ -1,5 +1,6 @@
 
 import { generateId } from '../utils';
+import { apiService } from '../services/apiService';
 
 export type TaskStatus = 'Todo' | 'InProgress' | 'Done';
 export type TaskPriority = 'Low' | 'Medium' | 'High';
@@ -54,105 +55,107 @@ export class Task {
     this.updatedAt = props.updatedAt || new Date().toISOString();
   }
 
-  // Mock local storage implementation for demo
-  private static getStore(): Task[] {
-    const data = localStorage.getItem('tasks');
-    return data ? JSON.parse(data) : [];
-  }
-
-  private static setStore(tasks: Task[]): void {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-  }
-
+  // Server-based storage implementation
   static async create(taskData: TaskProps): Promise<Task> {
-    const task = new Task(taskData);
-    const tasks = this.getStore();
-    tasks.push(task);
-    this.setStore(tasks);
-    return task;
+    try {
+      const result = await apiService.create('tasks', taskData);
+      return new Task(result);
+    } catch (error) {
+      console.error('Failed to create task:', error);
+      throw error;
+    }
   }
 
   static async update(id: string, taskData: Partial<TaskProps>): Promise<Task | null> {
-    const tasks = this.getStore();
-    const index = tasks.findIndex(t => t.id === id);
-    
-    if (index === -1) return null;
-    
-    const updatedTask = {
-      ...tasks[index],
-      ...taskData,
-      updatedAt: new Date().toISOString()
-    };
-    
-    tasks[index] = updatedTask;
-    this.setStore(tasks);
-    return new Task(updatedTask);
+    try {
+      const result = await apiService.update('tasks', id, taskData);
+      return result ? new Task(result) : null;
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      return null;
+    }
   }
 
   static async delete(id: string): Promise<boolean> {
-    const tasks = this.getStore();
-    const filteredTasks = tasks.filter(t => t.id !== id);
-    
-    if (filteredTasks.length === tasks.length) {
+    try {
+      const result = await apiService.delete('tasks', id);
+      return result.success || false;
+    } catch (error) {
+      console.error('Failed to delete task:', error);
       return false;
     }
-    
-    this.setStore(filteredTasks);
-    return true;
   }
 
   static async findById(id: string): Promise<Task | null> {
-    const tasks = this.getStore();
-    const task = tasks.find(t => t.id === id);
-    return task ? new Task(task) : null;
+    try {
+      const result = await apiService.getById('tasks', id);
+      return result ? new Task(result) : null;
+    } catch (error) {
+      console.error('Failed to find task by id:', error);
+      return null;
+    }
   }
 
   static async filter(filters: Partial<TaskProps>, sortOrder?: string): Promise<Task[]> {
-    const tasks = this.getStore();
-    let filteredTasks = tasks.filter(task => {
-      for (const [key, value] of Object.entries(filters)) {
-        if (task[key as keyof Task] !== value) {
-          return false;
+    try {
+      const tasks = await apiService.getAll('tasks');
+      let filteredTasks = tasks.filter((task: any) => {
+        for (const [key, value] of Object.entries(filters)) {
+          if (task[key as keyof Task] !== value) {
+            return false;
+          }
         }
-      }
-      return true;
-    });
-    
-    if (sortOrder) {
-      const [field, direction] = sortOrder.split(':');
-      filteredTasks.sort((a, b) => {
-        if (direction === 'asc') {
-          return a[field as keyof Task] > b[field as keyof Task] ? 1 : -1;
-        } else {
-          return a[field as keyof Task] < b[field as keyof Task] ? 1 : -1;
-        }
+        return true;
       });
+      
+      if (sortOrder) {
+        const [field, direction] = sortOrder.split(':');
+        filteredTasks.sort((a: any, b: any) => {
+          if (direction === 'asc') {
+            return a[field] > b[field] ? 1 : -1;
+          } else {
+            return a[field] < b[field] ? 1 : -1;
+          }
+        });
+      }
+      
+      return filteredTasks.map((t: any) => new Task(t));
+    } catch (error) {
+      console.error('Failed to filter tasks:', error);
+      return [];
     }
-    
-    return filteredTasks.map(t => new Task(t));
   }
 
   static async getAll(): Promise<Task[]> {
-    const tasks = this.getStore();
-    return tasks.map(t => new Task(t));
+    try {
+      const tasks = await apiService.getAll('tasks');
+      return tasks.map((t: any) => new Task(t));
+    } catch (error) {
+      console.error('Failed to get all tasks:', error);
+      return [];
+    }
   }
 
   static async list(sortOrder?: string): Promise<Task[]> {
-    const tasks = this.getStore();
-    let sortedTasks = [...tasks];
-    
-    if (sortOrder) {
-      const [field, direction] = sortOrder.split(':');
-      sortedTasks.sort((a, b) => {
-        if (direction === 'asc') {
-          return a[field as keyof Task] > b[field as keyof Task] ? 1 : -1;
-        } else {
-          return a[field as keyof Task] < b[field as keyof Task] ? 1 : -1;
-        }
-      });
+    try {
+      let tasks = await apiService.getAll('tasks');
+      
+      if (sortOrder) {
+        const [field, direction] = sortOrder.split(':');
+        tasks.sort((a: any, b: any) => {
+          if (direction === 'asc') {
+            return a[field] > b[field] ? 1 : -1;
+          } else {
+            return a[field] < b[field] ? 1 : -1;
+          }
+        });
+      }
+      
+      return tasks.map((t: any) => new Task(t));
+    } catch (error) {
+      console.error('Failed to list tasks:', error);
+      return [];
     }
-    
-    return sortedTasks.map(t => new Task(t));
   }
 
   static async get(id: string): Promise<Task | null> {
