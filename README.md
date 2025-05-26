@@ -90,7 +90,7 @@ npm install
 npm run dev
 ```
 
-The frontend app will be available at `http://localhost:5173` by default.
+The frontend app will be available at `http://localhost:8080` by default.
 
 ## Server Setup
 
@@ -155,7 +155,7 @@ The server provides RESTful API endpoints:
    npm run dev
    ```
 
-3. **Access the Application**: Open `http://localhost:5173` in your browser
+3. **Access the Application**: Open `http://localhost:8080` in your browser
 
 ### Projects
 
