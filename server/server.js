@@ -56,41 +56,10 @@ if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 }
 
-// Function to detect available Python command
-function getPythonCommand() {
-    const { execSync } = require('child_process');
-    
-    // Try different Python commands
-    const pythonCommands = ['python3', 'python'];
-    
-    for (const cmd of pythonCommands) {
-        try {
-            execSync(`${cmd} --version`, { stdio: 'ignore' });
-            return cmd;
-        } catch (error) {
-            // Command not found, try next
-        }
-    }
-    
-    throw new Error('Python is not installed or not accessible. Please install Python3.');
-}
-
-let pythonCommand;
-try {
-    pythonCommand = getPythonCommand();
-    console.log(`Using Python command: ${pythonCommand}`);
-} catch (error) {
-    console.error('Python Error:', error.message);
-    console.error('Please install Python3 on your server:');
-    console.error('  Ubuntu/Debian: sudo apt install python3');
-    console.error('  CentOS/RHEL: sudo yum install python3');
-    process.exit(1);
-}
-
 // Helper function to run Python script
 const runPythonScript = (scriptArgs) => {
     return new Promise((resolve, reject) => {
-        const pythonProcess = spawn(pythonCommand, [path.join(__dirname, 'backend.py'), ...scriptArgs]);
+        const pythonProcess = spawn('python', [path.join(__dirname, 'backend.py'), ...scriptArgs]);
         
         let dataString = '';
         
