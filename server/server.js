@@ -4,14 +4,51 @@ const bodyParser = require('body-parser');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Get server IP address for logging
+function getServerIP() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const interface of interfaces[name]) {
+            if (interface.family === 'IPv4' && !interface.internal) {
+                return interface.address;
+            }
+        }
+    }
+    return 'localhost';
+}
+
+const serverIP = getServerIP();
+
+// Enhanced CORS configuration for cross-device access
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, Postman, etc.)
+        if (!origin) return callback(null, true);
+        
+        // Allow all origins for development/local network access
+        return callback(null, true);
+    },
+    credentials: true,
+    optionsSuccessStatus: 200,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Add request logging for debugging
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path} from ${req.ip}`);
+    next();
+});
 
 // Ensure Data directory exists
 const dataDir = path.join(__dirname, 'Data');
@@ -19,10 +56,41 @@ if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 }
 
+// Function to detect available Python command
+function getPythonCommand() {
+    const { execSync } = require('child_process');
+    
+    // Try different Python commands
+    const pythonCommands = ['python3', 'python'];
+    
+    for (const cmd of pythonCommands) {
+        try {
+            execSync(`${cmd} --version`, { stdio: 'ignore' });
+            return cmd;
+        } catch (error) {
+            // Command not found, try next
+        }
+    }
+    
+    throw new Error('Python is not installed or not accessible. Please install Python3.');
+}
+
+let pythonCommand;
+try {
+    pythonCommand = getPythonCommand();
+    console.log(`Using Python command: ${pythonCommand}`);
+} catch (error) {
+    console.error('Python Error:', error.message);
+    console.error('Please install Python3 on your server:');
+    console.error('  Ubuntu/Debian: sudo apt install python3');
+    console.error('  CentOS/RHEL: sudo yum install python3');
+    process.exit(1);
+}
+
 // Helper function to run Python script
 const runPythonScript = (scriptArgs) => {
     return new Promise((resolve, reject) => {
-        const pythonProcess = spawn('python', [path.join(__dirname, 'backend.py'), ...scriptArgs]);
+        const pythonProcess = spawn(pythonCommand, [path.join(__dirname, 'backend.py'), ...scriptArgs]);
         
         let dataString = '';
         
@@ -209,10 +277,25 @@ app.post('/api/backup/import-zip', async (req, res) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'TaskFlow Server is running' });
+    res.json({ 
+        status: 'ok', 
+        message: 'TaskFlow Server is running',
+        serverIP: serverIP,
+        port: PORT
+    });
 });
 
-app.listen(PORT, () => {
+// Listen on all network interfaces (0.0.0.0) instead of just localhost
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`TaskFlow Server is running on port ${PORT}`);
+    console.log(`Local access: http://localhost:${PORT}`);
+    console.log(`Network access: http://${serverIP}:${PORT}`);
     console.log(`Data directory: ${dataDir}`);
+    console.log('');
+    console.log('=== Network Setup Instructions ===');
+    console.log(`1. Frontend will run on: http://${serverIP}:8080`);
+    console.log(`2. Backend is running on: http://${serverIP}:${PORT}`);
+    console.log(`3. Other devices can access via: http://${serverIP}:8080`);
+    console.log(`4. Make sure ports ${PORT} and 8080 are open in your firewall`);
+    console.log('===================================');
 });

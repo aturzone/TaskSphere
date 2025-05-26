@@ -1,10 +1,17 @@
 
-const API_BASE_URL = 'http://localhost:3001/api';
+import { getApiBaseUrl } from '../config/networkConfig';
 
 class ApiService {
+  private getBaseUrl(): string {
+    return getApiBaseUrl();
+  }
+
   private async request(url: string, options?: RequestInit) {
     try {
-      const response = await fetch(`${API_BASE_URL}${url}`, {
+      const baseUrl = this.getBaseUrl();
+      console.log(`Making API request to: ${baseUrl}${url}`);
+      
+      const response = await fetch(`${baseUrl}${url}`, {
         headers: {
           'Content-Type': 'application/json',
           ...options?.headers,
@@ -19,6 +26,7 @@ class ApiService {
       return await response.json();
     } catch (error) {
       console.error('API request failed:', error);
+      console.error('Base URL was:', this.getBaseUrl());
       throw error;
     }
   }
@@ -52,7 +60,6 @@ class ApiService {
     });
   }
 
-  // Backup operations
   async exportData() {
     return this.request('/backup/export');
   }
@@ -70,7 +77,6 @@ class ApiService {
     });
   }
 
-  // Health check
   async healthCheck() {
     return this.request('/health');
   }
