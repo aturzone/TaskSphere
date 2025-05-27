@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -5,9 +6,11 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const AuthManager = require('./auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const authManager = new AuthManager();
 
 // Get server IP address for logging
 function getServerIP() {
@@ -56,6 +59,74 @@ if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 }
 
+// Authentication middleware
+const requireAuth = (req, res, next) => {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+        return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const validation = authManager.validateToken(token);
+    if (!validation.valid) {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    req.user = { username: validation.username };
+    next();
+};
+
+// Authentication Routes
+
+// Check if first time setup
+app.get('/api/auth/status', (req, res) => {
+    res.json({ 
+        isFirstTime: authManager.isFirstTime(),
+        serverIP: serverIP,
+        ports: { frontend: 8080, backend: 3001 }
+    });
+});
+
+// First time setup
+app.post('/api/auth/setup', (req, res) => {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password required' });
+    }
+
+    const result = authManager.setupFirstUser(username, password);
+    res.json(result);
+});
+
+// Login
+app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password required' });
+    }
+
+    const result = authManager.login(username, password);
+    if (result.success) {
+        res.json(result);
+    } else {
+        res.status(401).json(result);
+    }
+});
+
+// Logout
+app.post('/api/auth/logout', requireAuth, (req, res) => {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const result = authManager.logout(token);
+    res.json(result);
+});
+
+// Validate token
+app.get('/api/auth/validate', requireAuth, (req, res) => {
+    res.json({ valid: true, username: req.user.username });
+});
+
 // Helper function to run Python script
 const runPythonScript = (scriptArgs) => {
     return new Promise((resolve, reject) => {
@@ -86,10 +157,10 @@ const runPythonScript = (scriptArgs) => {
     });
 };
 
-// API Routes
+// Protected API Routes (require authentication)
 
 // Get all data for a specific entity type
-app.get('/api/:entityType', async (req, res) => {
+app.get('/api/:entityType', requireAuth, async (req, res) => {
     try {
         const { entityType } = req.params;
         const result = await runPythonScript(['get', entityType]);
@@ -101,7 +172,7 @@ app.get('/api/:entityType', async (req, res) => {
 });
 
 // Get specific item by ID
-app.get('/api/:entityType/:id', async (req, res) => {
+app.get('/api/:entityType/:id', requireAuth, async (req, res) => {
     try {
         const { entityType, id } = req.params;
         const result = await runPythonScript(['get', entityType, id]);
@@ -117,7 +188,7 @@ app.get('/api/:entityType/:id', async (req, res) => {
 });
 
 // Create new item
-app.post('/api/:entityType', async (req, res) => {
+app.post('/api/:entityType', requireAuth, async (req, res) => {
     try {
         const { entityType } = req.params;
         const data = JSON.stringify(req.body);
@@ -130,7 +201,7 @@ app.post('/api/:entityType', async (req, res) => {
 });
 
 // Update item
-app.put('/api/:entityType/:id', async (req, res) => {
+app.put('/api/:entityType/:id', requireAuth, async (req, res) => {
     try {
         const { entityType, id } = req.params;
         const data = JSON.stringify(req.body);
@@ -147,7 +218,7 @@ app.put('/api/:entityType/:id', async (req, res) => {
 });
 
 // Delete item
-app.delete('/api/:entityType/:id', async (req, res) => {
+app.delete('/api/:entityType/:id', requireAuth, async (req, res) => {
     try {
         const { entityType, id } = req.params;
         const result = await runPythonScript(['delete', entityType, id]);
@@ -159,7 +230,7 @@ app.delete('/api/:entityType/:id', async (req, res) => {
 });
 
 // Export all data
-app.get('/api/backup/export', async (req, res) => {
+app.get('/api/backup/export', requireAuth, async (req, res) => {
     try {
         const result = await runPythonScript(['export']);
         res.json(result);
@@ -170,7 +241,7 @@ app.get('/api/backup/export', async (req, res) => {
 });
 
 // Import data
-app.post('/api/backup/import', async (req, res) => {
+app.post('/api/backup/import', requireAuth, async (req, res) => {
     try {
         const data = JSON.stringify(req.body);
         const result = await runPythonScript(['import', data]);
@@ -182,7 +253,7 @@ app.post('/api/backup/import', async (req, res) => {
 });
 
 // Clear all data
-app.delete('/api/backup/clear', async (req, res) => {
+app.delete('/api/backup/clear', requireAuth, async (req, res) => {
     try {
         const result = await runPythonScript(['clear']);
         res.json({ success: result === 'true' });
@@ -193,7 +264,7 @@ app.delete('/api/backup/clear', async (req, res) => {
 });
 
 // Export all data as ZIP
-app.post('/api/backup/export-zip', async (req, res) => {
+app.post('/api/backup/export-zip', requireAuth, async (req, res) => {
     try {
         const options = req.body.options || {};
         const optionsJson = JSON.stringify(options);
@@ -219,7 +290,7 @@ app.post('/api/backup/export-zip', async (req, res) => {
 });
 
 // Import data from ZIP
-app.post('/api/backup/import-zip', async (req, res) => {
+app.post('/api/backup/import-zip', requireAuth, async (req, res) => {
     try {
         const { zipData, options } = req.body;
         const optionsJson = options ? JSON.stringify(options) : '{}';
@@ -244,13 +315,14 @@ app.post('/api/backup/import-zip', async (req, res) => {
     }
 });
 
-// Health check
+// Health check (no auth required)
 app.get('/api/health', (req, res) => {
     res.json({ 
         status: 'ok', 
         message: 'TaskFlow Server is running',
         serverIP: serverIP,
-        port: PORT
+        port: PORT,
+        isFirstTime: authManager.isFirstTime()
     });
 });
 
@@ -266,5 +338,8 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`2. Backend is running on: http://${serverIP}:${PORT}`);
     console.log(`3. Other devices can access via: http://${serverIP}:8080`);
     console.log(`4. Make sure ports ${PORT} and 8080 are open in your firewall`);
+    if (authManager.isFirstTime()) {
+        console.log(`5. First time setup required - visit the app to configure admin user`);
+    }
     console.log('===================================');
 });

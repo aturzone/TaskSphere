@@ -1,5 +1,6 @@
 
 import { getApiBaseUrl } from '../config/networkConfig';
+import { authService } from './authService';
 
 class ApiService {
   private getBaseUrl(): string {
@@ -11,13 +12,30 @@ class ApiService {
       const baseUrl = this.getBaseUrl();
       console.log(`Making API request to: ${baseUrl}${url}`);
       
+      const token = authService.getToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (options?.headers) {
+        Object.assign(headers, options.headers);
+      }
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`${baseUrl}${url}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...options?.headers,
-        },
         ...options,
+        headers,
       });
+
+      if (response.status === 401) {
+        // Token expired or invalid, redirect to login
+        authService.logout();
+        window.location.href = '/login';
+        throw new Error('Authentication required');
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
